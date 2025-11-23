@@ -1,5 +1,7 @@
 import { getStoredUser } from "./auth-api";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
 export interface Plan {
   id: number;
   name: string;
@@ -14,7 +16,7 @@ export interface CheckoutResponse {
 }
 
 export async function getPlans(): Promise<Plan[]> {
-  const response = await fetch("/api/billing/plans");
+  const response = await fetch(`${API_BASE_URL}/api/billing/plans`);
   
   if (!response.ok) {
     throw new Error("Failed to fetch plans");
@@ -31,7 +33,7 @@ export async function createCheckout(planId: number): Promise<CheckoutResponse> 
     throw new Error("Please log in to purchase a plan");
   }
   
-  const response = await fetch("/api/billing/checkout", {
+  const response = await fetch(`${API_BASE_URL}/api/billing/checkout`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -55,7 +57,7 @@ export async function getCredits() {
     return null;
   }
   
-  const response = await fetch("/api/billing/credits", {
+  const response = await fetch(`${API_BASE_URL}/api/billing/credits`, {
     headers: {
       "Authorization": `Bearer ${user.access_token}`,
     },

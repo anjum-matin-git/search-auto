@@ -36,6 +36,8 @@ export interface SearchResponse {
   results: CarResult[];
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
 export async function searchCars(query: string, userId?: number): Promise<SearchResponse> {
   const user = localStorage.getItem("user");
   const userData = user ? JSON.parse(user) : null;
@@ -49,7 +51,7 @@ export async function searchCars(query: string, userId?: number): Promise<Search
     headers["Authorization"] = `Bearer ${userData.access_token}`;
   }
   
-  const response = await fetch("/api/search", {
+  const response = await fetch(`${API_BASE_URL}/api/search`, {
     method: "POST",
     headers,
     body: JSON.stringify({ query }),

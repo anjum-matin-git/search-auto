@@ -252,7 +252,8 @@ async def get_personalized_cars(
     
     else:
         # No search history - use location to find nearby cars
-        user_location = current_user.location or "California"
+        # Fallback chain: location -> postal_code -> default
+        user_location = current_user.location or current_user.postal_code or "California"
         logger.info("personalized_from_location", user_id=user_id, location=user_location)
         
         # Search for popular cars near user's location

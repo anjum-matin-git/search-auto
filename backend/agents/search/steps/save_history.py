@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 
 from agents.search.state import SearchState
 from db.base import SessionLocal
+from db.models import Search, SearchResult
 from db.repositories import SearchRepository, SearchResultRepository, UserPreferenceRepository
 from core.logging import get_logger
 
@@ -43,28 +44,37 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         search_repo = SearchRepository(db)
         result_repo = SearchResultRepository(db)
         
-        # Create search record
-        search = search_repo.create(
+        # Create search record WITHOUT committing (atomic transaction)
+        search = Search(
             user_id=user_id,
             query=query,
             extracted_features=features
         )
-        db.commit()
+        db.add(search)
+        db.flush()  # Get ID without committing
         
-        # Link matched cars to this search
-        search_id = int(search.id) if isinstance(search.id, int) else search.id
+        # Prepare search results data
+        search_id_int = int(search.id)  # type: ignore
+        results_data = []
         for rank, car in enumerate(matched_cars, start=1):
             car_id = car.get("id")
             match_score = car.get("score", 0.0)
             
             if car_id:
-                result_repo.create(
-                    search_id=search_id,
-                    car_id=car_id,
-                    match_score=match_score,
-                    rank=rank
-                )
+                results_data.append({
+                    "search_id": search_id_int,
+                    "car_id": car_id,
+                    "match_score": match_score,
+                    "rank": rank
+                })
         
+        # Create all search results
+        if results_data:
+            for result_data in results_data:
+                result = SearchResult(**result_data)
+                db.add(result)
+        
+        # Commit both search and results atomically
         db.commit()
         logger.info("step_save_history_complete", search_id=search.id, matched_count=len(matched_cars))
         

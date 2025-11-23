@@ -115,13 +115,12 @@ class SearchRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create(self, user_id: int, query: str, filters: dict = None, embedding: List[float] = None) -> Search:
+    def create(self, user_id: int, query: str, extracted_features: dict = None) -> Search:
         """Create a new search record."""
         search = Search(
             user_id=user_id,
             query=query,
-            filters=filters,
-            embedding=embedding
+            extracted_features=extracted_features
         )
         self.db.add(search)
         self.db.commit()

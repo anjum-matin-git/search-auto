@@ -37,8 +37,7 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         search = search_repo.create(
             user_id=state["user_id"],
             query=state["query"],
-            filters=state["extracted_features"],
-            embedding=state["query_embedding"]
+            extracted_features=state["extracted_features"]
         )
         
         results_data = []

@@ -19,12 +19,15 @@ import sys
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from integrations.stripe_client import StripeClient
+import stripe
 from db.base import get_db
 from db.models import Plan
 from core.logging import get_logger
 
 logger = get_logger(__name__)
+
+# Configure Stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY") or os.getenv("STRIPE_API_KEY")
 
 
 def create_products():
@@ -42,8 +45,6 @@ def create_products():
         return False
     
     try:
-        stripe_client = StripeClient()
-        
         # Get database session
         db = next(get_db())
         
@@ -55,13 +56,13 @@ def create_products():
         
         if personal_plan:
             # Create product
-            product = stripe_client.stripe.Product.create(
+            product = stripe.Product.create(
                 name="SearchAuto Personal",
                 description="50 car search credits - perfect for occasional searches"
             )
             
             # Create price
-            price = stripe_client.stripe.Price.create(
+            price = stripe.Price.create(
                 product=product.id,
                 unit_amount=500,  # $5.00 in cents
                 currency="usd",
@@ -80,13 +81,13 @@ def create_products():
         
         if pro_plan:
             # Create product
-            product = stripe_client.stripe.Product.create(
+            product = stripe.Product.create(
                 name="SearchAuto Pro",
                 description="Unlimited car searches every month - for serious car buyers"
             )
             
             # Create price (recurring monthly)
-            price = stripe_client.stripe.Price.create(
+            price = stripe.Price.create(
                 product=product.id,
                 unit_amount=2500,  # $25.00 in cents
                 currency="usd",

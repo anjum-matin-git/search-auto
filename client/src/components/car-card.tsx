@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Phone, MapPin, Store } from "lucide-react";
 import type { CarResult } from "@/lib/api";
 
 interface CarCardProps {
@@ -91,6 +91,37 @@ export function CarCard({ car, index }: CarCardProps) {
 
         {car.location && (
           <p className="text-sm text-muted-foreground mb-4" data-testid={`text-location-${car.id}`}>📍 {car.location}</p>
+        )}
+
+        {(car.dealerName || car.dealerPhone || car.dealerAddress) && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100" data-testid={`dealer-info-${car.id}`}>
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dealer Information</h4>
+            <div className="space-y-2">
+              {car.dealerName && (
+                <div className="flex items-start gap-2" data-testid={`dealer-name-${car.id}`}>
+                  <Store className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-foreground font-medium">{car.dealerName}</span>
+                </div>
+              )}
+              {car.dealerAddress && (
+                <div className="flex items-start gap-2" data-testid={`dealer-address-${car.id}`}>
+                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-foreground">{car.dealerAddress}</span>
+                </div>
+              )}
+              {car.dealerPhone && (
+                <div className="flex items-start gap-2" data-testid={`dealer-phone-${car.id}`}>
+                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <a 
+                    href={`tel:${car.dealerPhone}`} 
+                    className="text-sm text-foreground hover:text-primary transition-colors"
+                  >
+                    {car.dealerPhone}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         <a 

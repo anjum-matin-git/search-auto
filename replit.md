@@ -202,21 +202,29 @@ Preferred communication style: Simple, everyday language.
 
 ### Car Listing Features
 
-**"Find Dealer" Button (Nov 23, 2025)**
+**Dealer Information Display (Nov 23, 2025)**
 - **Problem**: Auto.dev API does not provide working URLs to dealer websites
   - API fields `vdpUrl`, `hrefTarget`, and `clickoffUrl` all return 404 errors
   - No direct links to original listings or dealer websites available
-- **Solution**: Google Search fallback for dealer discovery
-  - Button constructs Google search URL using dealer name + location
+- **Solution 1**: In-card dealer contact information
+  - Displays dealer name, address, and phone number directly on each car card
+  - Phone number is clickable (tel: protocol) for one-tap calling on mobile
+  - Styled in a gray info box with icons (Store, MapPin, Phone from lucide-react)
+  - Located between vehicle location and "Find Dealer" button
+- **Solution 2**: Google Search fallback for dealer discovery
+  - "Find Dealer" button constructs Google search URL using dealer name + location
   - Format: `https://www.google.com/search?q={dealerName}+{location}`
   - Example: "Matt Blatt Mitsubishi Glassboro, NJ" → Google search
   - Opens in new tab for user convenience
 - **Implementation**:
-  - Frontend: `client/src/components/car-card.tsx` - `getDealerSearchUrl()` function
-  - Backend provides `dealerName` and `location` fields from Auto.dev API
-  - CarResult interface supports both `dealerName` and legacy `dealership` field
+  - Frontend: `client/src/components/car-card.tsx` - Dealer info section with icons
+  - Frontend: `getDealerSearchUrl()` function for Google search fallback
+  - Backend: `dealerName`, `dealerPhone`, `dealerAddress` fields from Auto.dev API
+  - CarResult interface: `dealerName`, `dealerPhone`, `dealerAddress` fields
 - **User Experience**:
-  - Guarantees users can find dealer contact information
+  - Users see dealer contact info immediately without clicking
+  - Phone number clickable for instant calling
+  - "Find Dealer" button as backup to find dealer's website
   - More reliable than broken Auto.dev URLs
   - Works for all listings regardless of data source
 ### Feature: Personalized Results (Nov 23, 2025)

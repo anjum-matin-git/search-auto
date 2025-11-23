@@ -12,6 +12,8 @@ export interface CarResult {
   location?: string;
   dealerName?: string;
   dealership?: string;
+  dealerPhone?: string;
+  dealerAddress?: string;
   type?: string;
   fuelType?: string;
   transmission?: string;

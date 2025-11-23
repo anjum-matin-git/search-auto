@@ -37,16 +37,26 @@ export interface SearchResponse {
 }
 
 export async function searchCars(query: string, userId?: number): Promise<SearchResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  
+  // Add authentication header if user is logged in
+  if (userId) {
+    headers["x-user-id"] = userId.toString();
+  }
+  
   const response = await fetch("/api/search", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ query, userId }),
+    headers,
+    body: JSON.stringify({ query }),
   });
 
   if (!response.ok) {
-    throw new Error("Search failed");
+    const error = await response.json().catch(() => ({ error: "Search failed" }));
+    const err = new Error(error.error || error.detail || "Search failed");
+    (err as any).status = response.status;
+    throw err;
   }
 
   return response.json();

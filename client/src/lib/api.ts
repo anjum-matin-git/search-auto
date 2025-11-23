@@ -36,7 +36,7 @@ export interface SearchResponse {
   results: CarResult[];
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export async function searchCars(query: string, userId?: number): Promise<SearchResponse> {
   const user = localStorage.getItem("user");

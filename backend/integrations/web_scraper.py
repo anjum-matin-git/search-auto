@@ -121,10 +121,9 @@ class WebScraper:
                 "price": price,
                 "mileage": mileage,
                 "location": location,
-                "type": car_type,
                 "source": source,
                 "url": f"https://{source.lower()}.com/listing-{i}",
-                "description": f"{year} {brand} {model} in excellent condition",
+                "description": f"{year} {brand} {model} {car_type} in excellent condition",
                 "features": random.sample(
                     ["Leather Seats", "Sunroof", "Navigation", "Backup Camera", 
                      "Heated Seats", "Apple CarPlay", "Blind Spot Monitor"],

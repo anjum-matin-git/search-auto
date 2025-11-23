@@ -4,6 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { CarCard } from "@/components/car-card";
 import { AuthModal } from "@/components/auth-modal";
+import { PaywallModal } from "@/components/paywall-modal";
 import { searchCars, type CarResult } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth-api";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
@@ -13,6 +14,8 @@ export default function Home() {
   const [results, setResults] = useState<CarResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [searchCount, setSearchCount] = useState(0);
   const user = getStoredUser();
 
   const nearbyCarsQuery = useQuery({
@@ -33,10 +36,20 @@ export default function Home() {
     onSuccess: (data) => {
       setResults(data.results);
       setHasSearched(true);
+      setSearchCount(prev => prev + 1);
       toast.success(`Found ${data.count} matching vehicles!`);
+      
+      // Show paywall after 3 searches for free users
+      if (user && searchCount >= 2) {
+        setTimeout(() => setShowPaywall(true), 2000);
+      }
     },
     onError: (error: any) => {
-      toast.error(error.message || "Search failed. Please try again.");
+      if (error.status === 402) {
+        setShowPaywall(true);
+      } else {
+        toast.error(error.message || "Search failed. Please try again.");
+      }
     },
   });
 
@@ -55,6 +68,11 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white text-foreground">
       <Navbar />
       <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PaywallModal 
+        open={showPaywall} 
+        onClose={() => setShowPaywall(false)} 
+        creditsRemaining={Math.max(0, 3 - searchCount)}
+      />
       
       <main>
         <Hero onSearch={handleSearch} isSearching={searchMutation.isPending} />

@@ -2,6 +2,10 @@
 Seed script to create pricing plans in the database.
 Run this once to initialize the plans.
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from db.base import SessionLocal
 from db.models import Plan
 

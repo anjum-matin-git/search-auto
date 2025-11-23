@@ -35,6 +35,11 @@ export function Navbar() {
               Search
             </button>
           </Link>
+          <Link href="/pricing">
+            <button className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-gray-50">
+              Pricing
+            </button>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

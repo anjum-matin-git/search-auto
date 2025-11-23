@@ -4,9 +4,12 @@
 
 echo "🚀 Starting SearchAuto..."
 
+# Get the script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Start Python FastAPI backend on port 3000
 echo "📦 Starting Python backend on port 3000..."
-cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload &
+(cd "$SCRIPT_DIR/backend" && python -m uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload) &
 BACKEND_PID=$!
 
 # Wait a moment for backend to start
@@ -14,7 +17,7 @@ sleep 2
 
 # Start Vite frontend on port 5000
 echo "🎨 Starting Vite frontend on port 5000..."
-cd .. && npm run dev &
+(cd "$SCRIPT_DIR" && npm run dev) &
 FRONTEND_PID=$!
 
 echo "✅ Both servers started!"

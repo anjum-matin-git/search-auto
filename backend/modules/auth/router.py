@@ -12,7 +12,7 @@ from core.jwt_auth import create_access_token
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/signup", response_model=UserResponse)
+@router.post("/signup")
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
     """Create a new user account and return JWT token."""
     auth_service = AuthService(db)
@@ -26,10 +26,10 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(user_data["id"], user_data["email"])
     user_data["access_token"] = access_token
     
-    return user_data
+    return {"success": True, "user": user_data}
 
 
-@router.post("/login", response_model=UserResponse)
+@router.post("/login")
 def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate a user and return JWT token."""
     auth_service = AuthService(db)
@@ -42,7 +42,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(user_data["id"], user_data["email"])
     user_data["access_token"] = access_token
     
-    return user_data
+    return {"success": True, "user": user_data}
 
 
 @router.post("/preferences", response_model=UserResponse)

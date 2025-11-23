@@ -86,9 +86,15 @@ export function CarCard({ car, index }: CarCardProps) {
           <p className="text-sm text-muted-foreground mb-4" data-testid={`text-location-${car.id}`}>📍 {car.location}</p>
         )}
 
-        <button className="w-full py-4 bg-secondary hover:bg-foreground hover:text-white text-foreground rounded-2xl transition-all duration-300 font-medium text-sm flex items-center justify-center gap-2 group/btn" data-testid={`button-details-${car.id}`}>
+        <a 
+          href={car.sourceUrl || '#'} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="w-full py-4 bg-secondary hover:bg-foreground hover:text-white text-foreground rounded-2xl transition-all duration-300 font-medium text-sm flex items-center justify-center gap-2 group/btn" 
+          data-testid={`button-details-${car.id}`}
+        >
           View Details <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-        </button>
+        </a>
       </div>
     </motion.div>
   );

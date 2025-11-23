@@ -73,7 +73,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
           </h1>
           
           <p className="text-gray-600 text-xl md:text-2xl max-w-3xl mx-auto mb-16 font-light leading-relaxed">
-            Advanced AI agents scan thousands of listings in real-time to match you with your ideal vehicle
+            AI scans thousands of listings to match your dream car in seconds
           </p>
 
           {/* Premium Search Input */}

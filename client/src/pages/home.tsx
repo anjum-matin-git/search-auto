@@ -141,20 +141,37 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="mt-32 py-24 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-[3rem] text-center border border-gray-200 relative overflow-hidden">
+            <div className="mt-32 py-24 bg-gradient-to-br from-gray-900 to-black rounded-[3rem] text-center relative overflow-hidden">
+               <div className="absolute inset-0 opacity-10">
+                 <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-3xl"></div>
+                 <div className="absolute bottom-10 right-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
+               </div>
                <div className="relative max-w-2xl mx-auto px-6">
-                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black text-white text-sm font-semibold mb-6 shadow-lg shadow-black/20">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-white text-sm font-semibold mb-6">
                    <Sparkles className="w-4 h-4" />
                    Advanced AI Search
                  </div>
-                 <h3 className="text-4xl md:text-5xl font-display font-bold mb-6 tracking-tight text-gray-900">
-                   Still looking for the one?
+                 <h3 className="text-4xl md:text-5xl font-display font-bold mb-6 tracking-tight text-white">
+                   Want to refine your search?
                  </h3>
-                 <p className="text-gray-700 text-lg mb-10 leading-relaxed max-w-xl mx-auto">
-                   Our deep-search algorithm accesses private listings and auction data to find rare specifications that match your exact criteria.
+                 <p className="text-gray-300 text-lg mb-10 leading-relaxed max-w-xl mx-auto">
+                   Scroll back up and try a more specific query to find exactly what you're looking for
                  </p>
-                 <button className="px-10 py-5 bg-black text-white hover:bg-gray-900 hover:shadow-2xl hover:shadow-black/30 transition-all font-semibold rounded-full text-lg" data-testid="button-deep-search">
-                   Start Deep Search →
+                 <button 
+                   onClick={() => {
+                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                     setTimeout(() => {
+                       const searchInput = document.querySelector('[data-testid="input-search"]') as HTMLInputElement;
+                       if (searchInput) {
+                         searchInput.focus();
+                         searchInput.select();
+                       }
+                     }, 500);
+                   }}
+                   className="px-10 py-5 bg-white text-black hover:bg-gray-100 hover:shadow-2xl hover:shadow-white/20 transition-all font-semibold rounded-full text-lg" 
+                   data-testid="button-deep-search"
+                 >
+                   New Search ↑
                  </button>
                </div>
             </div>

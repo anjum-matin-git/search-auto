@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from db.base import get_db
 from db.models import Plan, User, UserSubscription
 from services.credits_service import CreditsService
+from core.auth import get_current_user
 from .schemas import (
     PlanResponse,
     CheckoutRequest, 
@@ -58,12 +59,12 @@ async def create_checkout(
 
 @router.get("/credits", response_model=CreditsResponse)
 async def get_credits(
-    user_id: int,  # TODO: Get from auth middleware
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's current credit balance and subscription status."""
+    """Get authenticated user's current credit balance and subscription status."""
     credits_service = CreditsService(db)
-    credits_info = credits_service.get_user_credits(user_id)
+    credits_info = credits_service.get_user_credits(current_user.id)
     
     if not credits_info:
         raise HTTPException(status_code=404, detail="User not found")

@@ -52,10 +52,15 @@ class CreditsService:
     
     def deduct_credit(self, user_id: int) -> bool:
         """
-        Deduct one credit from user's balance.
-        Returns True if successful, False if no credits remaining.
+        Atomically deduct one credit from user's balance.
+        Uses SELECT FOR UPDATE to prevent race conditions.
+        Raises AppException if no credits remaining.
+        Returns True if successful.
         """
-        user = self.db.query(User).filter(User.id == user_id).first()
+        from sqlalchemy import text
+        
+        # Use SELECT FOR UPDATE to lock the row and prevent race conditions
+        user = self.db.query(User).filter(User.id == user_id).with_for_update().first()
         if not user:
             raise AppException("User not found", 404)
         
@@ -64,12 +69,12 @@ class CreditsService:
             logger.info("unlimited_user_search", user_id=user_id)
             return True
         
-        # Check if user has credits
+        # Check if user has credits (atomic check)
         if user.credits_remaining <= 0:
             logger.warning("no_credits_remaining", user_id=user_id)
-            return False
+            raise AppException("No credits remaining. Please upgrade your plan.", 402)
         
-        # Deduct credit
+        # Deduct credit atomically
         user.credits_remaining -= 1
         self.db.commit()
         

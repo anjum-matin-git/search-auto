@@ -12,6 +12,7 @@ from core.exceptions import AppException
 from db.base import init_db
 from modules.auth.router import router as auth_router
 from modules.search.router import router as search_router
+from modules.billing.router import router as billing_router
 
 configure_logging()
 logger = get_logger(__name__)
@@ -82,6 +83,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth_router)
 app.include_router(search_router)
+app.include_router(billing_router)
 
 
 @app.get("/")

@@ -1,23 +1,61 @@
 """
 FastAPI router for search endpoints.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from typing import Optional
 
+from db.base import get_db
+from db.models import User
+from core.auth import get_optional_user, get_current_user
 from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
 from agents.search.workflow import run_search
+from services.credits_service import CreditsService
+from core.logging import get_logger
+from core.exceptions import AppException
 
+logger = get_logger(__name__)
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
 @router.post("", response_model=SearchResponse)
-async def search_cars(request: SearchRequest):
+async def search_cars(
+    request: SearchRequest,
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db)
+):
     """
     Search for cars using natural language query.
-    Runs the 5-step LangGraph workflow.
+    Authenticated users: Checks credits/quota and deducts after search.
+    Unauthenticated users: Limited free search without persistence.
     """
+    credits_service = CreditsService(db)
+    user_id = current_user.id if current_user else None
+    
+    # For authenticated users, check and deduct credits atomically
+    if current_user:
+        # Check quota before search
+        has_quota = credits_service.check_quota(current_user.id)
+        if not has_quota:
+            logger.warning("search_quota_exceeded", user_id=current_user.id)
+            raise AppException("No credits remaining. Please upgrade your plan.", 402)
+        
+        # Deduct credit BEFORE search (prevents race conditions)
+        # If search fails, we could refund, but simpler to deduct upfront
+        try:
+            credits_service.deduct_credit(current_user.id)
+            logger.info("credit_deducted_before_search", user_id=current_user.id)
+        except AppException as e:
+            # Re-raise 402 errors (no credits)
+            if e.status_code == 402:
+                raise
+            # For other errors, log and continue
+            logger.error("credit_deduction_failed", user_id=current_user.id, error=str(e))
+    
+    # Run search workflow
     final_state = await run_search(
         query=request.query,
-        user_id=request.user_id
+        user_id=user_id
     )
     
     matched_cars_with_scores = [

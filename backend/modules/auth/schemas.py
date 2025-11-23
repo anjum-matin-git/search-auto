@@ -14,7 +14,7 @@ class SignupRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request schema for user login."""
-    username: str
+    email: str
     password: str
 
 

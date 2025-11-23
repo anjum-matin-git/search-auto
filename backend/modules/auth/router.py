@@ -34,7 +34,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate a user and return JWT token."""
     auth_service = AuthService(db)
     user_data = auth_service.login(
-        username=request.username,
+        username=request.email,
         password=request.password
     )
     

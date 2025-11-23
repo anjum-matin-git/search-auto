@@ -141,6 +141,29 @@ class SearchRepository:
         ).order_by(
             desc(Search.created_at)
         ).limit(limit).all()
+    
+    def get_latest_with_results(self, user_id: int) -> Optional[tuple[Search, List[tuple[Car, float]]]]:
+        """Get user's most recent search with its car results."""
+        # Get the most recent search
+        latest_search = self.db.query(Search).filter(
+            Search.user_id == user_id
+        ).order_by(
+            desc(Search.created_at)
+        ).first()
+        
+        if not latest_search:
+            return None
+        
+        # Get the search results with cars
+        results = self.db.query(Car, SearchResult.match_score).join(
+            SearchResult, Car.id == SearchResult.car_id
+        ).filter(
+            SearchResult.search_id == latest_search.id
+        ).order_by(
+            SearchResult.rank
+        ).all()
+        
+        return (latest_search, results)
 
 
 class SearchResultRepository:

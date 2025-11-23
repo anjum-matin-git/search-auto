@@ -67,6 +67,30 @@ export async function searchCars(query: string, userId?: number): Promise<Search
   return response.json();
 }
 
+export async function getPersonalizedCars(): Promise<SearchResponse> {
+  const user = localStorage.getItem("user");
+  const userData = user ? JSON.parse(user) : null;
+  
+  if (!userData?.access_token) {
+    throw new Error("Not authenticated");
+  }
+  
+  const response = await fetch(`${API_BASE_URL}/api/search/personalized`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${userData.access_token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Failed to load personalized results" }));
+    throw new Error(error.error || error.detail || "Failed to load personalized results");
+  }
+
+  return response.json();
+}
+
 export async function getSearchHistory(userId: number) {
   const response = await fetch(`/api/search/history?userId=${userId}`);
   

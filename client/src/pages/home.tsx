@@ -5,7 +5,7 @@ import { Hero } from "@/components/hero";
 import { CarCard } from "@/components/car-card";
 import { AuthModal } from "@/components/auth-modal";
 import { PaywallModal } from "@/components/paywall-modal";
-import { searchCars, type CarResult } from "@/lib/api";
+import { searchCars, getPersonalizedCars, type CarResult } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth-api";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -18,17 +18,14 @@ export default function Home() {
   const [searchCount, setSearchCount] = useState(0);
   const user = getStoredUser();
 
-  const nearbyCarsQuery = useQuery({
-    queryKey: ["nearby-cars", user?.location],
+  const personalizedCarsQuery = useQuery({
+    queryKey: ["personalized-cars", user?.id],
     queryFn: async () => {
-      if (!user?.location && !user?.postalCode) return null;
-      const location = user.location || user.postalCode || "";
-      const response = await fetch(`/api/cars/nearby?location=${encodeURIComponent(location)}&limit=10`);
-      if (!response.ok) throw new Error("Failed to load nearby cars");
-      const data = await response.json();
-      return data.cars;
+      const data = await getPersonalizedCars();
+      return data.results;
     },
-    enabled: !!user && (!!user.location || !!user.postalCode),
+    enabled: !!user,
+    retry: false,
   });
 
   const searchMutation = useMutation({
@@ -61,8 +58,9 @@ export default function Home() {
     searchMutation.mutate(query);
   };
 
-  const displayResults = hasSearched ? results : (nearbyCarsQuery.data || []);
-  const showResults = hasSearched || (nearbyCarsQuery.data && nearbyCarsQuery.data.length > 0);
+  const displayResults = hasSearched ? results : (personalizedCarsQuery.data || []);
+  const showResults = hasSearched || (personalizedCarsQuery.data && personalizedCarsQuery.data.length > 0);
+  const isPersonalized = !hasSearched && personalizedCarsQuery.data;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white text-foreground">

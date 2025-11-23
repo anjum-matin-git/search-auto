@@ -94,7 +94,7 @@ class AuthService:
             "email": user.email,
             "location": user.location,
             "postal_code": user.postal_code,
-            "initial_preferences": user.initial_preferences,
+            "credits_remaining": user.credits_remaining,
         }
     
     def update_preferences(

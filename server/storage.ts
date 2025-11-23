@@ -54,7 +54,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCar(insertCar: InsertCar): Promise<Car> {
-    const [car] = await db.insert(cars).values([insertCar]).returning();
+    const carData = {
+      ...insertCar,
+      specs: insertCar.specs ? insertCar.specs : undefined,
+    };
+    const [car] = await db.insert(cars).values([carData as any]).returning();
     return car;
   }
 
@@ -80,7 +84,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSearch(insertSearch: InsertSearch): Promise<Search> {
-    const [search] = await db.insert(searches).values([insertSearch]).returning();
+    const searchData = {
+      ...insertSearch,
+      filters: insertSearch.filters ? insertSearch.filters : undefined,
+    };
+    const [search] = await db.insert(searches).values([searchData as any]).returning();
     return search;
   }
 

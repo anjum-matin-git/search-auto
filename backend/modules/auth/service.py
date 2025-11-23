@@ -71,7 +71,7 @@ class AuthService:
         Authenticate a user.
         
         Args:
-            username: Username
+            username: Username or email
             password: Plain text password
         
         Returns:
@@ -80,7 +80,7 @@ class AuthService:
         Raises:
             AuthenticationException: If credentials are invalid
         """
-        user = self.user_repo.get_by_username(username)
+        user = self.user_repo.get_by_email(username)
         
         if not user or not self.verify_password(password, user.password):
             logger.warning("login_failed", username=username)

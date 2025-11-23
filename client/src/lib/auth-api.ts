@@ -10,7 +10,8 @@ export interface User {
     priceRange?: { min?: number; max?: number };
     fuelType?: string;
   } | null;
-  createdAt: string;
+  createdAt?: string;
+  access_token?: string;  // JWT token
 }
 
 export async function signup(data: {

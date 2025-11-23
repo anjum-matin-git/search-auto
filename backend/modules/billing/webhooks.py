@@ -54,11 +54,12 @@ async def handle_payment_success(session: stripe.checkout.Session, db: Session):
     
     # Add credits to user
     credits_service = CreditsService(db)
-    new_balance = credits_service.add_credits(user.id, credits_to_add)
+    user_id_int = int(user.id) if not isinstance(user.id, int) else user.id
+    new_balance = credits_service.add_credits(user_id_int, credits_to_add)
     
     logger.info(
         "payment_success_credits_granted",
-        user_id=user.id,
+        user_id=user_id_int,
         credits_added=credits_to_add,
         new_balance=new_balance,
         session_id=session.id
@@ -104,13 +105,14 @@ async def handle_subscription_created(subscription: stripe.Subscription, db: Ses
     
     # Grant unlimited searches
     credits_service = CreditsService(db)
-    credits_service.set_unlimited(user.id, unlimited=True)
+    user_id_int = int(user.id) if not isinstance(user.id, int) else user.id
+    credits_service.set_unlimited(user_id_int, unlimited=True)
     
     db.commit()
     
     logger.info(
         "subscription_created_unlimited_granted",
-        user_id=user.id,
+        user_id=user_id_int,
         subscription_id=subscription.id,
         plan=pro_plan.name
     )
@@ -129,14 +131,22 @@ async def handle_subscription_updated(subscription: stripe.Subscription, db: Ses
     ).first()
     
     if user_subscription:
-        user_subscription.status = subscription.status
-        user_subscription.stripe_subscription_id = subscription.id
+        from sqlalchemy import update
+        db.execute(
+            update(UserSubscription)
+            .where(UserSubscription.id == user_subscription.id)
+            .values(
+                status=subscription.status,
+                stripe_subscription_id=subscription.id
+            )
+        )
         
         # If subscription is canceled or past_due, revoke unlimited
         if subscription.status in ["canceled", "past_due", "unpaid"]:
             credits_service = CreditsService(db)
-            credits_service.set_unlimited(user.id, unlimited=False)
-            logger.info("subscription_revoked", user_id=user.id, status=subscription.status)
+            user_id_int = int(user.id) if not isinstance(user.id, int) else user.id
+            credits_service.set_unlimited(user_id_int, unlimited=False)
+            logger.info("subscription_revoked", user_id=user_id_int, status=subscription.status)
         
         db.commit()
         
@@ -158,20 +168,26 @@ async def handle_subscription_deleted(subscription: stripe.Subscription, db: Ses
     
     # Revoke unlimited searches
     credits_service = CreditsService(db)
-    credits_service.set_unlimited(user.id, unlimited=False)
+    user_id_int = int(user.id) if not isinstance(user.id, int) else user.id
+    credits_service.set_unlimited(user_id_int, unlimited=False)
     
     # Update subscription status
     user_subscription = db.query(UserSubscription).filter(
-        UserSubscription.user_id == user.id
+        UserSubscription.user_id == user_id_int
     ).first()
     
     if user_subscription:
-        user_subscription.status = "canceled"
+        from sqlalchemy import update
+        db.execute(
+            update(UserSubscription)
+            .where(UserSubscription.id == user_subscription.id)
+            .values(status="canceled")
+        )
         db.commit()
     
     logger.info(
         "subscription_deleted_unlimited_revoked",
-        user_id=user.id,
+        user_id=user_id_int,
         subscription_id=subscription.id
     )
 

@@ -37,13 +37,16 @@ export interface SearchResponse {
 }
 
 export async function searchCars(query: string, userId?: number): Promise<SearchResponse> {
+  const user = localStorage.getItem("user");
+  const userData = user ? JSON.parse(user) : null;
+  
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
   
-  // Add authentication header if user is logged in
-  if (userId) {
-    headers["x-user-id"] = userId.toString();
+  // Add JWT token if available
+  if (userData?.access_token) {
+    headers["Authorization"] = `Bearer ${userData.access_token}`;
   }
   
   const response = await fetch("/api/search", {

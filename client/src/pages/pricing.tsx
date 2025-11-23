@@ -1,13 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/navbar";
-import { Check, Sparkles, Crown, Phone } from "lucide-react";
-import { Link } from "wouter";
+import { Check, Sparkles, Crown, Phone, Loader2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { createCheckout, getPlans, type Plan } from "@/lib/billing-api";
+import { getStoredUser } from "@/lib/auth-api";
+import { toast } from "sonner";
 
 export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [loading, setLoading] = useState<number | null>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [apiPlans, setApiPlans] = useState<Plan[]>([]);
+  const [, setLocation] = useLocation();
+  const user = getStoredUser();
+  
+  useEffect(() => {
+    // Fetch plans from API
+    getPlans()
+      .then(setApiPlans)
+      .catch((err) => {
+        console.error("Failed to load plans:", err);
+        toast.error("Failed to load pricing plans");
+      })
+      .finally(() => setPlansLoading(false));
+  }, []);
+  
+  const handleCheckout = async (planId: number, planName: string) => {
+    if (!user) {
+      toast.error("Please log in to purchase a plan");
+      setLocation("/login");
+      return;
+    }
+    
+    setLoading(planId);
+    try {
+      const { checkout_url } = await createCheckout(planId);
+      window.location.href = checkout_url;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to start checkout");
+      setLoading(null);
+    }
+  };
 
-  const plans = [
+  const planTemplates = [
     {
       name: "Personal",
       icon: Sparkles,
@@ -85,8 +121,16 @@ export default function Pricing() {
           </motion.div>
 
           {/* Pricing Cards */}
+          {plansLoading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : (
           <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {plans.map((plan, index) => {
+            {planTemplates.map((planTemplate, index) => {
+              // Match API plan by name
+              const apiPlan = apiPlans.find(p => p.name === planTemplate.name);
+              const plan = { ...planTemplate, id: apiPlan?.id || index + 1 };
               const Icon = plan.icon;
               return (
                 <motion.div
@@ -139,18 +183,18 @@ export default function Pricing() {
                     )}
                   </div>
 
-                  <Link href={plan.name === "Premium" ? "/contact-sales" : "/signup"}>
-                    <button
-                      className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 ${
-                        plan.popular
-                          ? "bg-white text-black hover:bg-gray-100"
-                          : "bg-black text-white hover:bg-gray-900"
-                      }`}
-                      data-testid={`plan-${plan.name.toLowerCase()}`}
-                    >
-                      {plan.cta}
-                    </button>
-                  </Link>
+                  <button
+                    onClick={() => plan.name === "Premium" ? setLocation("/contact-sales") : handleCheckout(plan.id, plan.name)}
+                    disabled={loading === plan.id}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 ${
+                      plan.popular
+                        ? "bg-white text-black hover:bg-gray-100"
+                        : "bg-black text-white hover:bg-gray-900"
+                    }`}
+                    data-testid={`plan-${plan.name.toLowerCase()}`}
+                  >
+                    {loading === plan.id ? "Loading..." : plan.cta}
+                  </button>
 
                   <ul className="space-y-3">
                     {plan.features.map((feature) => (
@@ -168,6 +212,7 @@ export default function Pricing() {
               );
             })}
           </div>
+          )}
 
           {/* FAQ */}
           <div className="max-w-3xl mx-auto">

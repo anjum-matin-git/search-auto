@@ -5,7 +5,10 @@ Replaces the insecure x-user-id header approach.
 import os
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
+try:
+    import jwt
+except ImportError:
+    from jose import jwt
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
@@ -16,7 +19,16 @@ from core.logging import get_logger
 logger = get_logger(__name__)
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    # Generate a random secret for development, but warn
+    import secrets
+    SECRET_KEY = secrets.token_urlsafe(32)
+    logger.warning(
+        "jwt_secret_not_configured",
+        message="JWT_SECRET_KEY not set! Using random key. SET THIS IN PRODUCTION!"
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 

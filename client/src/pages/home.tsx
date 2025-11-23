@@ -140,22 +140,6 @@ export default function Home() {
                   </>
                 )}
               </div>
-              
-              <div className="flex gap-2 bg-white/60 backdrop-blur-sm p-1.5 rounded-full border border-gray-200 shadow-sm">
-                {["All", "Sports", "SUV", "Electric", "Sedan"].map((filter, i) => (
-                  <button 
-                    key={filter}
-                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                      i === 0 
-                        ? 'bg-black text-white shadow-lg shadow-black/20' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-                    }`}
-                    data-testid={`filter-${filter.toLowerCase()}`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">

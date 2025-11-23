@@ -64,13 +64,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative text-foreground">
-      {/* Distorted gradient background */}
+      {/* Aurora gradient mesh background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-[#fafaf9]" />
-        <div className="absolute top-0 -left-20 w-96 h-96 bg-gradient-to-br from-gray-200/40 via-gray-100/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-40 right-20 w-[500px] h-[500px] bg-gradient-to-bl from-gray-300/30 via-gray-200/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute bottom-0 left-1/3 w-[600px] h-[600px] bg-gradient-to-tr from-gray-200/25 via-gray-100/15 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white/30" />
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#faf9f8] via-[#f5f3ff] to-[#faf9f8]" />
+        
+        {/* Animated aurora orbs */}
+        <div className="absolute top-0 -left-40 w-[600px] h-[600px] bg-gradient-to-br from-purple-400/20 via-violet-300/15 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-20 right-10 w-[700px] h-[700px] bg-gradient-to-bl from-blue-400/15 via-indigo-300/10 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute -bottom-20 left-1/4 w-[800px] h-[800px] bg-gradient-to-tr from-pink-400/12 via-purple-300/8 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        <div className="absolute top-1/2 right-1/3 w-[500px] h-[500px] bg-gradient-to-tl from-violet-400/10 via-blue-300/8 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '15s', animationDelay: '1s' }} />
+        
+        {/* Gradient overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-white/60" />
+        
+        {/* Subtle grain texture */}
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")'
+        }} />
       </div>
       <Navbar />
       <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />

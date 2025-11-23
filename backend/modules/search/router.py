@@ -276,7 +276,7 @@ async def get_personalized_cars(
         
         # Transform to response format (reuse same logic)
         matched_cars_with_scores = []
-        for car_data in cars[:10]:  # Limit to 10
+        for car_data in cars[:9]:  # Limit to 9
             # Format price
             price_value = car_data.get("price")
             if isinstance(price_value, str):

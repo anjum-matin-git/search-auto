@@ -93,7 +93,7 @@ class AutoDevAPI:
         if query_params.get("location"):
             params["zip"] = self._location_to_zip(query_params["location"])
         
-        params["page_size"] = 10
+        params["page_size"] = 9
         
         return params
     

@@ -11,7 +11,7 @@ from core.logging import get_logger
 
 logger = get_logger(__name__)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 class AuthService:
@@ -22,7 +22,7 @@ class AuthService:
         self.user_repo = UserRepository(db)
     
     def hash_password(self, password: str) -> str:
-        """Hash a password using bcrypt."""
+        """Hash a password using argon2."""
         return pwd_context.hash(password)
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:

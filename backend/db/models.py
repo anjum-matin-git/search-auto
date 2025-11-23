@@ -5,7 +5,6 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
 
 from .base import Base
 
@@ -72,27 +71,7 @@ class Car(Base):
     __tablename__ = "cars"
     
     id = Column(Integer, primary_key=True)
-    source = Column(String, nullable=False)
-    url = Column(String)
-    
-    brand = Column(String)
-    model = Column(String)
-    year = Column(Integer)
-    price = Column(Float)
-    mileage = Column(Integer)
-    location = Column(String)
-    
-    acceleration = Column(Float)
-    top_speed = Column(Integer)
-    power = Column(Integer)
-    mpg = Column(Float)
-    
-    features = Column(ARRAY(String))
-    images = Column(ARRAY(String))
-    description = Column(Text)
-    
-    embedding = Column(Vector(1536))
-    
+    car_data = Column(JSON, nullable=False)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

@@ -38,8 +38,8 @@ async def store_cars(state: SearchState) -> Dict[str, Any]:
             # Generate embedding
             embedding = await openai_client.create_car_embedding(car_data)
             
-            # Store in PostgreSQL (without embedding)
-            car = car_repo.create(**{**car_data, "active": True})
+            # Store in PostgreSQL as JSON
+            car = car_repo.create(car_data=car_data, active=True)
             
             # Store embedding in ChromaDB
             chroma_client.add_car(

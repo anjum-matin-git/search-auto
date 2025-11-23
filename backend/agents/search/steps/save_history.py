@@ -23,12 +23,7 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         Updated state with 'search_id'
     """
     logger.info("step_save_history_start", user_id=state.get("user_id"))
-    
-    if not state.get("user_id"):
-        logger.info("step_save_history_skipped", reason="no_user_id")
-        return {"search_id": None}
-    
-    logger.info("step_save_history_complete", search_id=None, note="temporarily_disabled")
+    logger.info("step_save_history_complete", search_id=None, note="disabled_temporarily")
     return {"search_id": None}
 
 

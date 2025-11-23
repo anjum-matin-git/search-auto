@@ -63,7 +63,15 @@ export default function Home() {
   const isPersonalized = !hasSearched && personalizedCarsQuery.data;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white text-foreground">
+    <div className="min-h-screen relative text-foreground">
+      {/* Distorted gradient background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-[#fafaf9]" />
+        <div className="absolute top-0 -left-20 w-96 h-96 bg-gradient-to-br from-gray-200/40 via-gray-100/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-40 right-20 w-[500px] h-[500px] bg-gradient-to-bl from-gray-300/30 via-gray-200/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/3 w-[600px] h-[600px] bg-gradient-to-tr from-gray-200/25 via-gray-100/15 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white/30" />
+      </div>
       <Navbar />
       <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
       <PaywallModal 

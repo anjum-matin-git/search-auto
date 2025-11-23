@@ -23,66 +23,67 @@ export function CarCard({ car, index }: CarCardProps) {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-soft hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 hover:-translate-y-1"
+      className="group bg-white rounded-3xl overflow-hidden border border-black/10 shadow-lg shadow-black/5 hover:shadow-2xl hover:shadow-black/10 transition-all duration-500 hover:-translate-y-2"
       data-testid={`card-car-${car.id}`}
     >
-      <div className="aspect-[4/3] overflow-hidden relative bg-secondary">
+      <div className="aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-gray-100 via-gray-50 to-white">
         <motion.img
           whileHover={{ scale: 1.05 }}
           transition={{ duration: 0.6 }}
           src={imageUrl}
           alt={`${car.brand} ${car.model}`}
-          className="w-full h-full object-cover mix-blend-multiply opacity-90 group-hover:opacity-100 transition-opacity"
+          className="w-full h-full object-cover"
           data-testid={`img-car-${car.id}`}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
         
-        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-foreground shadow-sm" data-testid={`badge-match-${car.id}`}>
+        <div className="absolute top-4 left-4 bg-black/90 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold text-white shadow-xl border border-white/20" data-testid={`badge-match-${car.id}`}>
           {car.match || 95}% Match
         </div>
       </div>
 
-      <div className="p-8">
+      <div className="p-8 bg-gradient-to-b from-white to-gray-50/50">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h3 className="text-sm text-muted-foreground font-medium mb-1" data-testid={`text-brand-${car.id}`}>{car.brand}</h3>
-            <h2 className="text-2xl font-display font-semibold text-foreground leading-tight" data-testid={`text-model-${car.id}`}>
+            <h3 className="text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wider" data-testid={`text-brand-${car.id}`}>{car.brand}</h3>
+            <h2 className="text-2xl font-display font-bold text-black leading-tight" data-testid={`text-model-${car.id}`}>
               {car.model}
             </h2>
             {car.year && (
-              <p className="text-sm text-muted-foreground mt-1" data-testid={`text-year-${car.id}`}>{car.year}</p>
+              <p className="text-sm text-gray-600 mt-1 font-medium" data-testid={`text-year-${car.id}`}>{car.year}</p>
             )}
           </div>
-          <div className="text-right">
-            <p className="text-lg font-semibold text-foreground" data-testid={`text-price-${car.id}`}>{car.price}</p>
+          <div className="text-right bg-black text-white px-4 py-2 rounded-2xl">
+            <p className="text-lg font-bold" data-testid={`text-price-${car.id}`}>{car.price}</p>
             {car.mileage && (
-              <p className="text-xs text-muted-foreground mt-1" data-testid={`text-mileage-${car.id}`}>{car.mileage}</p>
+              <p className="text-xs text-gray-300 mt-0.5" data-testid={`text-mileage-${car.id}`}>{car.mileage}</p>
             )}
           </div>
         </div>
 
         {car.specs && (
-          <div className="flex justify-between items-center py-6 border-t border-gray-100 mb-6">
+          <div className="flex justify-between items-center py-6 border-y border-black/5 mb-6 bg-white/50">
             {car.specs.acceleration && (
               <div className="text-center px-2">
-                <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">0-60</div>
-                <div className="font-semibold text-foreground" data-testid={`spec-acceleration-${car.id}`}>{car.specs.acceleration}</div>
+                <div className="text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">0-60</div>
+                <div className="font-bold text-black text-sm" data-testid={`spec-acceleration-${car.id}`}>{car.specs.acceleration}</div>
               </div>
             )}
             {car.specs.topSpeed && (
               <>
-                <div className="w-px h-8 bg-gray-100"></div>
+                <div className="w-px h-8 bg-black/10"></div>
                 <div className="text-center px-2">
-                  <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Top Speed</div>
-                  <div className="font-semibold text-foreground" data-testid={`spec-topspeed-${car.id}`}>{car.specs.topSpeed}</div>
+                  <div className="text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Top Speed</div>
+                  <div className="font-bold text-black text-sm" data-testid={`spec-topspeed-${car.id}`}>{car.specs.topSpeed}</div>
                 </div>
               </>
             )}
             {car.specs.power && (
               <>
-                <div className="w-px h-8 bg-gray-100"></div>
+                <div className="w-px h-8 bg-black/10"></div>
                 <div className="text-center px-2">
-                  <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Power</div>
-                  <div className="font-semibold text-foreground" data-testid={`spec-power-${car.id}`}>{car.specs.power}</div>
+                  <div className="text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Power</div>
+                  <div className="font-bold text-black text-sm" data-testid={`spec-power-${car.id}`}>{car.specs.power}</div>
                 </div>
               </>
             )}
@@ -94,27 +95,27 @@ export function CarCard({ car, index }: CarCardProps) {
         )}
 
         {(car.dealerName || car.dealerPhone || car.dealerAddress) && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100" data-testid={`dealer-info-${car.id}`}>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dealer Information</h4>
-            <div className="space-y-2">
+          <div className="mb-6 p-5 bg-black text-white rounded-2xl border border-black/20 shadow-inner" data-testid={`dealer-info-${car.id}`}>
+            <h4 className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-4">Dealer Information</h4>
+            <div className="space-y-3">
               {car.dealerName && (
-                <div className="flex items-start gap-2" data-testid={`dealer-name-${car.id}`}>
-                  <Store className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-foreground font-medium">{car.dealerName}</span>
+                <div className="flex items-start gap-3" data-testid={`dealer-name-${car.id}`}>
+                  <Store className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-white font-semibold">{car.dealerName}</span>
                 </div>
               )}
               {car.dealerAddress && (
-                <div className="flex items-start gap-2" data-testid={`dealer-address-${car.id}`}>
-                  <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-foreground">{car.dealerAddress}</span>
+                <div className="flex items-start gap-3" data-testid={`dealer-address-${car.id}`}>
+                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-200">{car.dealerAddress}</span>
                 </div>
               )}
               {car.dealerPhone && (
-                <div className="flex items-start gap-2" data-testid={`dealer-phone-${car.id}`}>
-                  <Phone className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-3" data-testid={`dealer-phone-${car.id}`}>
+                  <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <a 
                     href={`tel:${car.dealerPhone}`} 
-                    className="text-sm text-foreground hover:text-primary transition-colors"
+                    className="text-sm text-white hover:text-gray-300 transition-colors font-medium"
                   >
                     {car.dealerPhone}
                   </a>
@@ -128,7 +129,7 @@ export function CarCard({ car, index }: CarCardProps) {
           href={getDealerSearchUrl()} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="w-full py-4 bg-secondary hover:bg-foreground hover:text-white text-foreground rounded-2xl transition-all duration-300 font-medium text-sm flex items-center justify-center gap-2 group/btn" 
+          className="w-full py-4 bg-black hover:bg-gray-900 text-white rounded-2xl transition-all duration-300 font-bold text-sm flex items-center justify-center gap-2 group/btn shadow-lg hover:shadow-xl" 
           data-testid={`button-details-${car.id}`}
         >
           Find Dealer <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />

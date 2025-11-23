@@ -67,13 +67,36 @@ async def search_cars(
         final_state.get("matched_cars", []),
         final_state.get("match_scores", [])
     ):
-        # Format price
-        price_numeric = car.get("price")
-        price_str = f"${price_numeric:,}" if price_numeric else "Contact for price"
+        # Format price - handle both numeric and pre-formatted strings from Auto.dev
+        price_value = car.get("price")
+        if isinstance(price_value, str):
+            # Already formatted from Auto.dev (e.g., "$28,706")
+            price_str = price_value
+            # Extract numeric value
+            price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value != "New" else 0
+        elif isinstance(price_value, (int, float)):
+            price_numeric = int(price_value)
+            price_str = f"${price_numeric:,}"
+        else:
+            price_numeric = 0
+            price_str = "Contact for price"
         
-        # Format mileage
-        mileage_numeric = car.get("mileage")
-        mileage_str = f"{mileage_numeric:,} mi" if mileage_numeric else None
+        # Format mileage - handle both numeric and string formats from Auto.dev
+        mileage_value = car.get("mileage")
+        if isinstance(mileage_value, str):
+            # Already formatted (e.g., "146,227 Miles" or "New")
+            mileage_str = mileage_value
+            # Extract numeric value
+            try:
+                mileage_numeric = int(mileage_value.replace(",", "").replace(" Miles", "").replace(" mi", "")) if mileage_value and mileage_value != "New" else 0
+            except:
+                mileage_numeric = 0
+        elif isinstance(mileage_value, (int, float)):
+            mileage_numeric = int(mileage_value)
+            mileage_str = f"{mileage_numeric:,} mi"
+        else:
+            mileage_numeric = 0
+            mileage_str = None
         
         # Create specs object from top-level fields
         specs = None

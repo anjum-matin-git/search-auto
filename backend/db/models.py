@@ -1,22 +1,9 @@
 """
-SQLAlchemy ORM models with pgvector support.
-Clear, documented models matching the TypeScript schema.
+SQLAlchemy database models with pgvector support.
 """
 from datetime import datetime
-from typing import Optional
-
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Text,
-    Float,
-    Boolean,
-    DateTime,
-    ForeignKey,
-    JSON,
-    ARRAY,
-)
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, JSON, ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 
@@ -24,110 +11,134 @@ from .base import Base
 
 
 class User(Base):
-    """User model for authentication and preferences."""
-    
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(255), unique=True, nullable=False, index=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)
-    location = Column(String(255), nullable=True)
-    postal_code = Column(String(20), nullable=True)
-    initial_preferences = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    location = Column(String)
+    postal_code = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Stripe integration
+    stripe_customer_id = Column(String, unique=True)
+    
+    # Credit system
+    credits_remaining = Column(Integer, default=3)  # Free tier: 3 searches
+    unlimited_searches = Column(Boolean, default=False)  # Pro plan
     
     # Relationships
-    searches = relationship("Search", back_populates="user", cascade="all, delete-orphan")
-    preferences = relationship("UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    searches = relationship("Search", back_populates="user")
+    subscription = relationship("UserSubscription", back_populates="user", uselist=False)
+    preferences = relationship("UserPreference", back_populates="user", uselist=False)
+
+
+class Plan(Base):
+    __tablename__ = "plans"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)  # Personal, Pro, Premium
+    price = Column(Float, nullable=False)
+    credits = Column(Integer)  # NULL for unlimited (Pro/Premium)
+    stripe_price_id = Column(String, unique=True)
+    active = Column(Boolean, default=True)
+    features = Column(JSON)  # Store plan features as JSON
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UserSubscription(Base):
+    __tablename__ = "user_subscriptions"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    plan_id = Column(Integer, ForeignKey("plans.id"))
+    
+    stripe_subscription_id = Column(String, unique=True)
+    status = Column(String)  # active, canceled, past_due, etc.
+    
+    current_period_start = Column(DateTime)
+    current_period_end = Column(DateTime)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="subscription")
+    plan = relationship("Plan")
 
 
 class Car(Base):
-    """Car model with vector embeddings for semantic search."""
-    
     __tablename__ = "cars"
     
-    id = Column(Integer, primary_key=True, index=True)
-    brand = Column(String(100), nullable=False, index=True)
-    model = Column(String(100), nullable=False, index=True)
-    year = Column(Integer, nullable=False, index=True)
-    price = Column(Integer, nullable=True)
-    mileage = Column(Integer, nullable=True)
-    location = Column(String(255), nullable=True, index=True)
-    type = Column(String(50), nullable=True, index=True)
-    source = Column(String(100), nullable=True)
-    url = Column(Text, nullable=True)
-    description = Column(Text, nullable=True)
+    id = Column(Integer, primary_key=True)
+    source = Column(String, nullable=False)
+    url = Column(String)
     
-    # Performance specs
-    acceleration = Column(Float, nullable=True)
-    top_speed = Column(Float, nullable=True)
-    power = Column(Float, nullable=True)
-    mpg = Column(Float, nullable=True)
+    brand = Column(String)
+    model = Column(String)
+    year = Column(Integer)
+    price = Column(Float)
+    mileage = Column(Integer)
+    location = Column(String)
     
-    # Arrays
-    features = Column(ARRAY(String), nullable=True)
-    images = Column(ARRAY(String), nullable=True)
+    acceleration = Column(Float)
+    top_speed = Column(Integer)
+    power = Column(Integer)
+    mpg = Column(Float)
     
-    # Vector embedding for semantic search (1536 dimensions for text-embedding-3-small)
-    embedding = Column(Vector(1536), nullable=True)
+    features = Column(ARRAY(String))
+    images = Column(ARRAY(String))
+    description = Column(Text)
     
-    # Status
-    active = Column(Boolean, default=True, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    embedding = Column(Vector(1536))
     
-    # Relationships
-    search_results = relationship("SearchResult", back_populates="car", cascade="all, delete-orphan")
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Search(Base):
-    """Search history with user query and extracted features."""
-    
     __tablename__ = "searches"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
     query = Column(Text, nullable=False)
-    filters = Column(JSON, nullable=True)
-    embedding = Column(Vector(1536), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    extracted_features = Column(JSON)
+    query_embedding = Column(Vector(1536))
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     user = relationship("User", back_populates="searches")
-    results = relationship("SearchResult", back_populates="search", cascade="all, delete-orphan")
+    results = relationship("SearchResult", back_populates="search")
 
 
 class SearchResult(Base):
-    """Many-to-many join table linking searches to cars with ranking."""
-    
     __tablename__ = "search_results"
     
-    id = Column(Integer, primary_key=True, index=True)
-    search_id = Column(Integer, ForeignKey("searches.id", ondelete="CASCADE"), nullable=False, index=True)
-    car_id = Column(Integer, ForeignKey("cars.id", ondelete="CASCADE"), nullable=False, index=True)
-    match_score = Column(Float, nullable=False)
-    rank = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    id = Column(Integer, primary_key=True)
+    search_id = Column(Integer, ForeignKey("searches.id"))
+    car_id = Column(Integer, ForeignKey("cars.id"))
+    
+    match_score = Column(Float)
+    rank = Column(Integer)
     
     # Relationships
     search = relationship("Search", back_populates="results")
-    car = relationship("Car", back_populates="search_results")
+    car = relationship("Car")
 
 
 class UserPreference(Base):
-    """Learned user preferences based on search history."""
-    
     __tablename__ = "user_preferences"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
-    preferred_brands = Column(ARRAY(String), nullable=True)
-    preferred_types = Column(ARRAY(String), nullable=True)
-    price_range_min = Column(Integer, nullable=True)
-    price_range_max = Column(Integer, nullable=True)
-    preferred_features = Column(ARRAY(String), nullable=True)
-    preference_embedding = Column(Vector(1536), nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    
+    preference_embedding = Column(Vector(1536))
+    preferences = Column(JSON)
+    
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", back_populates="preferences")

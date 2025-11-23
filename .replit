@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["libxcrypt", "postgresql", "python311", "python311Packages.pip"]
+packages = ["gcc", "glibc", "libstdcxx5", "libxcrypt", "postgresql", "python311", "python311Packages.pip", "glibcLocales"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -19,10 +19,6 @@ externalPort = 80
 [[ports]]
 localPort = 5001
 externalPort = 3001
-
-[[ports]]
-localPort = 45989
-externalPort = 3000
 
 [env]
 PORT = "5000"

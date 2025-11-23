@@ -10,6 +10,7 @@ export interface CarResult {
   mileage?: string;
   mileageNumeric?: number;
   location?: string;
+  dealerName?: string;
   dealership?: string;
   type?: string;
   fuelType?: string;

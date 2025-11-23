@@ -10,6 +10,13 @@ interface CarCardProps {
 export function CarCard({ car, index }: CarCardProps) {
   const imageUrl = car.images?.[0] || "https://images.unsplash.com/photo-1555215695-3004980adade?w=800";
   
+  const getDealerSearchUrl = () => {
+    const dealerName = car.dealerName || car.dealership || "car dealership";
+    const location = car.location || "";
+    const searchQuery = encodeURIComponent(`${dealerName} ${location}`);
+    return `https://www.google.com/search?q=${searchQuery}`;
+  };
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -87,13 +94,13 @@ export function CarCard({ car, index }: CarCardProps) {
         )}
 
         <a 
-          href={car.sourceUrl || '#'} 
+          href={getDealerSearchUrl()} 
           target="_blank" 
           rel="noopener noreferrer"
           className="w-full py-4 bg-secondary hover:bg-foreground hover:text-white text-foreground rounded-2xl transition-all duration-300 font-medium text-sm flex items-center justify-center gap-2 group/btn" 
           data-testid={`button-details-${car.id}`}
         >
-          View Details <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+          Find Dealer <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
         </a>
       </div>
     </motion.div>

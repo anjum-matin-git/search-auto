@@ -199,6 +199,26 @@ Preferred communication style: Simple, everyday language.
 - AuthService layer with repository pattern
 - Pydantic schemas for request validation
 - Ready for JWT token-based sessions (python-jose installed)
+
+### Car Listing Features
+
+**"Find Dealer" Button (Nov 23, 2025)**
+- **Problem**: Auto.dev API does not provide working URLs to dealer websites
+  - API fields `vdpUrl`, `hrefTarget`, and `clickoffUrl` all return 404 errors
+  - No direct links to original listings or dealer websites available
+- **Solution**: Google Search fallback for dealer discovery
+  - Button constructs Google search URL using dealer name + location
+  - Format: `https://www.google.com/search?q={dealerName}+{location}`
+  - Example: "Matt Blatt Mitsubishi Glassboro, NJ" → Google search
+  - Opens in new tab for user convenience
+- **Implementation**:
+  - Frontend: `client/src/components/car-card.tsx` - `getDealerSearchUrl()` function
+  - Backend provides `dealerName` and `location` fields from Auto.dev API
+  - CarResult interface supports both `dealerName` and legacy `dealership` field
+- **User Experience**:
+  - Guarantees users can find dealer contact information
+  - More reliable than broken Auto.dev URLs
+  - Works for all listings regardless of data source
 ### Feature: Personalized Results (Nov 23, 2025)
 
 **Implementation**

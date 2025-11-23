@@ -50,7 +50,12 @@ export default function Login() {
               SearchAuto
             </div>
           </a>
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl shadow-black/5 border border-gray-200">
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl shadow-black/10 border border-gray-200"
+          >
             <div className="mb-8 text-center">
               <h1 className="text-4xl font-display font-bold mb-2 text-gray-900">Welcome Back</h1>
               <p className="text-gray-600">Log in to continue your search</p>
@@ -81,10 +86,12 @@ export default function Login() {
                 />
               </div>
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={loginMutation.isPending}
-                className="w-full px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                whileHover={{ scale: 1.01, boxShadow: "0 10px 30px rgba(0,0,0,0.15)" }}
+                whileTap={{ scale: 0.99 }}
+                className="w-full px-6 py-3 bg-gradient-to-r from-gray-900 to-black text-white rounded-xl hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
                 data-testid="button-login"
               >
                 {loginMutation.isPending ? (
@@ -94,7 +101,7 @@ export default function Login() {
                 ) : (
                   "Log In"
                 )}
-              </button>
+              </motion.button>
             </form>
 
             <p className="text-center mt-6 text-sm text-muted-foreground">
@@ -103,7 +110,7 @@ export default function Login() {
                 Sign up
               </a>
             </p>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </div>

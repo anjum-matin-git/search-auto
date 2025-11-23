@@ -93,7 +93,12 @@ export default function Signup() {
               SearchAuto
             </div>
           </a>
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl shadow-black/5 border border-gray-200">
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl shadow-black/10 border border-gray-200"
+          >
             <div className="mb-8">
               <h1 className="text-4xl font-display font-bold mb-2 text-gray-900">Join SearchAuto</h1>
               <p className="text-gray-600">Let's find your perfect car together</p>
@@ -270,19 +275,23 @@ export default function Signup() {
                   </button>
                 )}
                 {step < 3 ? (
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleNext}
-                    className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all flex items-center justify-center gap-2"
+                    whileHover={{ scale: 1.01, boxShadow: "0 10px 30px rgba(0,0,0,0.15)" }}
+                    whileTap={{ scale: 0.99 }}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-900 to-black text-white rounded-xl hover:shadow-xl transition-all flex items-center justify-center gap-2 shadow-lg"
                     data-testid="button-next"
                   >
                     Next <ArrowRight className="w-4 h-4" />
-                  </button>
+                  </motion.button>
                 ) : (
-                  <button
+                  <motion.button
                     type="submit"
                     disabled={signupMutation.isPending}
-                    className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    whileHover={{ scale: 1.01, boxShadow: "0 10px 30px rgba(0,0,0,0.15)" }}
+                    whileTap={{ scale: 0.99 }}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-900 to-black text-white rounded-xl hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
                     data-testid="button-signup"
                   >
                     {signupMutation.isPending ? (
@@ -292,7 +301,7 @@ export default function Signup() {
                     ) : (
                       "Create Account"
                     )}
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </form>
@@ -303,7 +312,7 @@ export default function Signup() {
                 Log in
               </a>
             </p>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </div>

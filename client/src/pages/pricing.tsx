@@ -138,10 +138,11 @@ export default function Pricing() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className={`relative rounded-3xl p-8 ${
+                  whileHover={{ y: -8, boxShadow: plan.popular ? "0 25px 50px rgba(0,0,0,0.25)" : "0 20px 40px rgba(0,0,0,0.1)" }}
+                  className={`relative rounded-3xl p-8 transition-all duration-300 ${
                     plan.popular
-                      ? "bg-black text-white shadow-2xl shadow-black/20 border-2 border-black"
-                      : "bg-white border-2 border-gray-200 shadow-sm"
+                      ? "bg-gradient-to-br from-gray-900 to-black text-white shadow-2xl shadow-black/20 border-2 border-black"
+                      : "bg-white border-2 border-gray-200 shadow-lg hover:border-gray-300"
                   }`}
                 >
                   {plan.popular && (
@@ -183,18 +184,27 @@ export default function Pricing() {
                     )}
                   </div>
 
-                  <button
+                  <motion.button
                     onClick={() => plan.name === "Premium" ? setLocation("/contact-sales") : handleCheckout(plan.id, plan.name)}
                     disabled={loading === plan.id}
-                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 ${
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 shadow-lg hover:shadow-xl ${
                       plan.popular
-                        ? "bg-white text-black hover:bg-gray-100"
-                        : "bg-black text-white hover:bg-gray-900"
+                        ? "bg-white text-black hover:bg-gray-50"
+                        : "bg-gradient-to-r from-gray-900 to-black text-white"
                     }`}
                     data-testid={`plan-${plan.name.toLowerCase()}`}
                   >
-                    {loading === plan.id ? "Loading..." : plan.cta}
-                  </button>
+                    {loading === plan.id ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      plan.cta
+                    )}
+                  </motion.button>
 
                   <ul className="space-y-3">
                     {plan.features.map((feature) => (

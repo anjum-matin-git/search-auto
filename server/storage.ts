@@ -1,38 +1,157 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import {
+  users,
+  cars,
+  searches,
+  searchResults,
+  userPreferences,
+  type User,
+  type InsertUser,
+  type Car,
+  type InsertCar,
+  type Search,
+  type InsertSearch,
+  type SearchResult,
+  type UserPreferences,
+  type InsertUserPreferences,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(insertUser: InsertUser): Promise<User>;
+  
+  createCar(insertCar: InsertCar): Promise<Car>;
+  getCarById(id: number): Promise<Car | undefined>;
+  findSimilarCars(embedding: number[], limit: number): Promise<Car[]>;
+  updateCarActive(id: number, isActive: boolean): Promise<void>;
+  
+  createSearch(insertSearch: InsertSearch): Promise<Search>;
+  getUserSearches(userId: number, limit?: number): Promise<Search[]>;
+  createSearchResult(searchId: number, carId: number, matchScore: number, rank: number): Promise<SearchResult>;
+  getSearchResults(searchId: number): Promise<(SearchResult & { car: Car })[]>;
+  
+  getUserPreferences(userId: number): Promise<UserPreferences | undefined>;
+  upsertUserPreferences(prefs: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferencesEmbedding(userId: number, embedding: number[]): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async createCar(insertCar: InsertCar): Promise<Car> {
+    const [car] = await db.insert(cars).values(insertCar).returning();
+    return car;
+  }
+
+  async getCarById(id: number): Promise<Car | undefined> {
+    const [car] = await db.select().from(cars).where(eq(cars.id, id));
+    return car || undefined;
+  }
+
+  async findSimilarCars(embedding: number[], limit: number = 10): Promise<Car[]> {
+    const embeddingStr = `[${embedding.join(",")}]`;
+    const result = await db.execute(sql`
+      SELECT *
+      FROM ${cars}
+      WHERE is_active = true AND embedding IS NOT NULL
+      ORDER BY embedding <-> ${embeddingStr}::vector
+      LIMIT ${limit}
+    `);
+    return result.rows as Car[];
+  }
+
+  async updateCarActive(id: number, isActive: boolean): Promise<void> {
+    await db.update(cars).set({ isActive }).where(eq(cars.id, id));
+  }
+
+  async createSearch(insertSearch: InsertSearch): Promise<Search> {
+    const [search] = await db.insert(searches).values(insertSearch).returning();
+    return search;
+  }
+
+  async getUserSearches(userId: number, limit: number = 20): Promise<Search[]> {
+    return await db
+      .select()
+      .from(searches)
+      .where(eq(searches.userId, userId))
+      .orderBy(desc(searches.createdAt))
+      .limit(limit);
+  }
+
+  async createSearchResult(
+    searchId: number,
+    carId: number,
+    matchScore: number,
+    rank: number
+  ): Promise<SearchResult> {
+    const [result] = await db
+      .insert(searchResults)
+      .values({ searchId, carId, matchScore, rank })
+      .returning();
+    return result;
+  }
+
+  async getSearchResults(searchId: number): Promise<(SearchResult & { car: Car })[]> {
+    const results = await db
+      .select()
+      .from(searchResults)
+      .innerJoin(cars, eq(searchResults.carId, cars.id))
+      .where(eq(searchResults.searchId, searchId))
+      .orderBy(searchResults.rank);
+
+    return results.map((row) => ({
+      ...row.search_results,
+      car: row.cars,
+    }));
+  }
+
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    const [prefs] = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, userId));
+    return prefs || undefined;
+  }
+
+  async upsertUserPreferences(prefs: InsertUserPreferences): Promise<UserPreferences> {
+    const existing = await this.getUserPreferences(prefs.userId);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(userPreferences)
+        .set({ ...prefs, updatedAt: new Date() })
+        .where(eq(userPreferences.userId, prefs.userId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(userPreferences).values(prefs).returning();
+      return created;
+    }
+  }
+
+  async updateUserPreferencesEmbedding(userId: number, embedding: number[]): Promise<void> {
+    const embeddingStr = `[${embedding.join(",")}]`;
+    await db.execute(sql`
+      UPDATE ${userPreferences}
+      SET embedding = ${embeddingStr}::vector, updated_at = NOW()
+      WHERE user_id = ${userId}
+    `);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -46,7 +46,7 @@ export default function Home() {
   const showResults = hasSearched || (nearbyCarsQuery.data && nearbyCarsQuery.data.length > 0);
 
   return (
-    <div className="min-h-screen bg-white text-foreground">
+    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white text-foreground">
       <Navbar />
       
       <main>
@@ -54,15 +54,32 @@ export default function Home() {
         
         {searchMutation.isPending && (
           <section className="py-32 container mx-auto px-6">
-            <div className="flex flex-col items-center justify-center gap-6">
-              <Loader2 className="w-12 h-12 animate-spin text-gray-900" />
-              <div className="text-center">
-                <h2 className="text-2xl font-display font-semibold mb-2 text-gray-900">
+            <div className="flex flex-col items-center justify-center gap-8">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full blur-2xl opacity-30 animate-pulse" />
+                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-white" />
+                </div>
+              </div>
+              <div className="text-center max-w-lg">
+                <h2 className="text-3xl font-display font-bold mb-3 bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
                   AI Agent at Work
                 </h2>
-                <p className="text-gray-600 max-w-md">
-                  Scraping AutoTrader and dealership websites, analyzing specifications, and finding the perfect matches for you...
+                <p className="text-gray-600 text-lg leading-relaxed">
+                  Scanning AutoTrader, analyzing thousands of listings, and matching specifications to find your perfect vehicle...
                 </p>
+                <div className="flex gap-2 justify-center mt-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
+                      style={{
+                        animation: `pulse 1.5s ease-in-out infinite`,
+                        animationDelay: `${i * 0.15}s`
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </section>
@@ -101,14 +118,14 @@ export default function Home() {
                 )}
               </div>
               
-              <div className="flex gap-2 bg-gray-100 p-1.5 rounded-full">
+              <div className="flex gap-2 bg-white/60 backdrop-blur-sm p-1.5 rounded-full border border-gray-200 shadow-sm">
                 {["All", "Sports", "SUV", "Electric", "Sedan"].map((filter, i) => (
                   <button 
                     key={filter}
-                    className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
                       i === 0 
-                        ? 'bg-gray-900 text-white' 
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white'
                     }`}
                     data-testid={`filter-${filter.toLowerCase()}`}
                   >
@@ -124,16 +141,21 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="mt-32 py-24 bg-gray-50 rounded-[3rem] text-center border border-gray-200">
-               <div className="max-w-2xl mx-auto px-6">
-                 <h3 className="text-3xl md:text-4xl font-display font-semibold mb-6 tracking-tight text-gray-900">
+            <div className="mt-32 py-24 bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-cyan-50/50 rounded-[3rem] text-center border border-purple-200/30 relative overflow-hidden">
+               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-cyan-500/5" />
+               <div className="relative max-w-2xl mx-auto px-6">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200/50 text-purple-700 text-sm font-semibold mb-6">
+                   <Sparkles className="w-4 h-4" />
+                   Advanced AI Search
+                 </div>
+                 <h3 className="text-4xl md:text-5xl font-display font-bold mb-6 tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-600 bg-clip-text text-transparent">
                    Still looking for the one?
                  </h3>
-                 <p className="text-gray-600 text-lg mb-10 leading-relaxed">
-                   Our deep-search algorithm can access private listings and auction data to find rare specifications.
+                 <p className="text-gray-700 text-lg mb-10 leading-relaxed max-w-xl mx-auto">
+                   Our deep-search algorithm accesses private listings and auction data to find rare specifications that match your exact criteria.
                  </p>
-                 <button className="px-10 py-4 bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium rounded-full text-lg" data-testid="button-deep-search">
-                   Start Deep Search
+                 <button className="px-10 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:shadow-2xl hover:shadow-purple-500/40 transition-all font-semibold rounded-full text-lg" data-testid="button-deep-search">
+                   Start Deep Search →
                  </button>
                </div>
             </div>

@@ -74,7 +74,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loginMutation.isPending}
-                className="w-full px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 data-testid="button-login"
               >
                 {loginMutation.isPending ? (

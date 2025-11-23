@@ -128,7 +128,11 @@ async def search_cars(
             features=car.get("features", []),
             images=car.get("images", []),
             specs=specs,
-            match=match_percentage
+            match=match_percentage,
+            vin=car.get("vin"),
+            dealerName=car.get("dealer_name"),
+            dealerPhone=car.get("dealer_phone"),
+            dealerAddress=car.get("dealer_address")
         )
         matched_cars_with_scores.append(car_response)
     

@@ -38,6 +38,10 @@ class CarResponse(BaseModel):
     images: List[str] = []
     specs: Optional[SpecsResponse] = None
     match: Optional[int] = None  # Percentage 0-100
+    vin: Optional[str] = None
+    dealerName: Optional[str] = None
+    dealerPhone: Optional[str] = None
+    dealerAddress: Optional[str] = None
 
 
 class SearchResponse(BaseModel):

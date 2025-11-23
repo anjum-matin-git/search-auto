@@ -137,30 +137,62 @@ class AutoDevAPI:
                 
                 mileage = listing.get("mileage", 0)
                 
-                images = listing.get("photos", [])
+                # Get actual dealer photos from Auto.dev API
+                images = listing.get("photoUrls", [])
+                
+                # Also check for primaryPhotoUrl if photoUrls is empty
+                if not images:
+                    primary_photo = listing.get("primaryPhotoUrl")
+                    if primary_photo:
+                        images = [primary_photo]
+                
+                # Ensure images are strings, not dicts
                 if isinstance(images, list) and len(images) > 0:
                     if isinstance(images[0], dict):
                         images = [img.get("url", img.get("uri", "")) for img in images]
                 
-                dealer = listing.get("dealer", {})
-                dealer_name = dealer.get("name", "Auto Dealer")
-                dealer_phone = dealer.get("phone", "+1 (800) 555-0100")
-                dealer_address = dealer.get("address", "")
-                dealer_city = dealer.get("city", "California")
-                dealer_state = dealer.get("state", "CA")
+                # Get dealer info from Auto.dev response
+                dealer_name = listing.get("dealerName", "Auto Dealer")
+                dealer_city = listing.get("city", "")
+                dealer_state = listing.get("state", "")
+                dealer_phone = "+1 (800) 555-0100"
+                dealer_address = ""
+                
+                # Try to extract dealer info from nested dealer object if available
+                dealer_obj = listing.get("dealer", {})
+                if isinstance(dealer_obj, dict):
+                    dealer_name = dealer_obj.get("name", dealer_name)
+                    dealer_phone = dealer_obj.get("phone", dealer_phone)
+                    dealer_address = dealer_obj.get("address", dealer_address)
+                    if not dealer_city:
+                        dealer_city = dealer_obj.get("city", "California")
+                    if not dealer_state:
+                        dealer_state = dealer_obj.get("state", "CA")
                 
                 full_location = f"{dealer_city}, {dealer_state}" if dealer_city else "California"
                 full_address = dealer_address if dealer_address else f"Dealer Location, {full_location}"
                 
+                # Extract features from Auto.dev listing
                 features = []
-                if listing.get("exterior_color"):
-                    features.append(f"{listing['exterior_color']} Exterior")
-                if listing.get("interior_color"):
-                    features.append(f"{listing['interior_color']} Interior")
-                if listing.get("transmission"):
-                    features.append(listing["transmission"])
-                if listing.get("fuel_type"):
-                    features.append(listing["fuel_type"])
+                if listing.get("displayColor"):
+                    features.append(f"{listing['displayColor']} Color")
+                if listing.get("trim"):
+                    features.append(listing["trim"])
+                if listing.get("bodyType"):
+                    features.append(listing["bodyType"].title())
+                if listing.get("bodyStyle"):
+                    features.append(listing["bodyStyle"].title())
+                
+                # Add condition
+                condition = listing.get("condition", "").title()
+                if condition:
+                    features.append(condition)
+                
+                # Build description
+                trim = listing.get("trim", "")
+                description = f"{year} {make} {model}"
+                if trim:
+                    description += f" {trim}"
                 
                 car = {
                     "brand": make,
@@ -173,10 +205,10 @@ class AutoDevAPI:
                     "dealer_phone": dealer_phone,
                     "dealer_address": full_address,
                     "source": "Auto.dev",
-                    "url": listing.get("link", listing.get("url", "")),
-                    "description": f"{year} {make} {model}",
-                    "features": features if features else ["Well Maintained", "Clean Title"],
-                    "images": images[:5] if images else [],
+                    "url": listing.get("clickoffUrl", listing.get("vdpUrl", "")),
+                    "description": description,
+                    "features": features if features else ["Well Maintained"],
+                    "images": images[:8] if images else [],
                     "vin": vin,
                     "acceleration": 7.0,
                     "top_speed": 130,

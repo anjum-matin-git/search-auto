@@ -52,12 +52,15 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         if results_data:
             result_repo.bulk_create(results_data)
         
-        _update_user_preferences(
-            pref_repo,
-            state["user_id"],
-            state["extracted_features"],
-            state["matched_cars"]
-        )
+        try:
+            _update_user_preferences(
+                pref_repo,
+                state["user_id"],
+                state["extracted_features"],
+                state["matched_cars"]
+            )
+        except Exception as e:
+            logger.warning("preferences_update_failed", error=str(e))
         
         logger.info("step_save_history_complete", search_id=search.id)
         
@@ -65,6 +68,9 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
             "search_id": search.id,
         }
         
+    except Exception as e:
+        logger.error("step_save_history_failed", error=str(e), exc_info=True)
+        return {"search_id": None}
     finally:
         db.close()
 

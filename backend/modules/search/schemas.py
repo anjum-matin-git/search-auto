@@ -11,26 +11,33 @@ class SearchRequest(BaseModel):
     user_id: Optional[int] = None
 
 
+class SpecsResponse(BaseModel):
+    """Specs sub-schema for a car."""
+    acceleration: Optional[str] = None
+    topSpeed: Optional[str] = None
+    power: Optional[str] = None
+    mpg: Optional[str] = None
+
+
 class CarResponse(BaseModel):
     """Response schema for a single car."""
     id: int
     brand: str
     model: str
     year: int
-    price: Optional[int] = None
-    mileage: Optional[int] = None
+    price: str  # Formatted as "$50,000"
+    priceNumeric: Optional[int] = None
+    mileage: Optional[str] = None  # Formatted as "15,000 mi"
+    mileageNumeric: Optional[int] = None
     location: Optional[str] = None
     type: Optional[str] = None
     source: Optional[str] = None
-    url: Optional[str] = None
+    sourceUrl: Optional[str] = None
     description: Optional[str] = None
     features: List[str] = []
     images: List[str] = []
-    acceleration: Optional[float] = None
-    top_speed: Optional[float] = None
-    power: Optional[float] = None
-    mpg: Optional[float] = None
-    match_score: Optional[float] = None
+    specs: Optional[SpecsResponse] = None
+    match: Optional[int] = None  # Percentage 0-100
 
 
 class SearchResponse(BaseModel):

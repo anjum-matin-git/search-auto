@@ -61,13 +61,53 @@ async def search_cars(
         user_id=user_id
     )
     
-    matched_cars_with_scores = [
-        CarResponse(**car, match_score=score)
-        for car, score in zip(
-            final_state.get("matched_cars", []),
-            final_state.get("match_scores", [])
+    # Transform car data to match frontend expectations
+    matched_cars_with_scores = []
+    for car, score in zip(
+        final_state.get("matched_cars", []),
+        final_state.get("match_scores", [])
+    ):
+        # Format price
+        price_numeric = car.get("price")
+        price_str = f"${price_numeric:,}" if price_numeric else "Contact for price"
+        
+        # Format mileage
+        mileage_numeric = car.get("mileage")
+        mileage_str = f"{mileage_numeric:,} mi" if mileage_numeric else None
+        
+        # Create specs object from top-level fields
+        specs = None
+        if any(car.get(k) for k in ["acceleration", "top_speed", "power", "mpg"]):
+            specs = {
+                "acceleration": f"{car.get('acceleration')}s" if car.get('acceleration') else None,
+                "topSpeed": f"{int(car.get('top_speed'))} mph" if car.get('top_speed') else None,
+                "power": f"{int(car.get('power'))} hp" if car.get('power') else None,
+                "mpg": f"{car.get('mpg')} mpg" if car.get('mpg') else None,
+            }
+        
+        # Convert match score to percentage (0-100)
+        match_percentage = int(abs(score) * 100) if score is not None else 95
+        
+        car_response = CarResponse(
+            id=car.get("id"),
+            brand=car.get("brand", "Unknown"),
+            model=car.get("model", "Unknown"),
+            year=car.get("year", 2024),
+            price=price_str,
+            priceNumeric=price_numeric,
+            mileage=mileage_str,
+            mileageNumeric=mileage_numeric,
+            location=car.get("location"),
+            type=car.get("type"),
+            source=car.get("source"),
+            sourceUrl=car.get("url"),
+            description=car.get("description"),
+            features=car.get("features", []),
+            images=car.get("images", []),
+            specs=specs,
+            match=match_percentage
         )
-    ]
+        matched_cars_with_scores.append(car_response)
     
     return SearchResponse(
         success=True,

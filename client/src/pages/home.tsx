@@ -192,60 +192,24 @@ export default function Home() {
         )}
       </main>
       
-      <footer className="bg-white border-t border-gray-100 py-20 px-6">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
-              <a href="#" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-gray-900 mb-6">
-                <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center shadow-lg shadow-black/20">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                  </svg>
-                </div>
-                SearchAuto
-              </a>
-              <p className="text-muted-foreground leading-relaxed">
-                Redefining the automotive buying experience with artificial intelligence and human-centric design.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-6">Platform</h4>
-              <ul className="space-y-4 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Browse Cars</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">AI Match</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Sell Your Car</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-6">Company</h4>
-              <ul className="space-y-4 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Press</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-6">Legal</h4>
-              <ul className="space-y-4 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Cookie Policy</a></li>
-              </ul>
-            </div>
+      <footer className="bg-gradient-to-b from-white to-gray-50 border-t border-gray-100 py-16 px-6">
+        <div className="container mx-auto max-w-4xl text-center">
+          <div className="mb-8">
+            <a href="/" className="font-display font-bold text-3xl tracking-tight inline-flex items-center gap-2 text-gray-900 mb-4">
+              <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+              </div>
+              SearchAuto
+            </a>
+            <p className="text-gray-600 text-lg max-w-md mx-auto">
+              AI-powered car search made simple
+            </p>
           </div>
           
-          <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-            <div>© 2025 Search Auto AI. All rights reserved.</div>
-            <div className="flex gap-6">
-              <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
-              <a href="#" className="hover:text-foreground transition-colors">Instagram</a>
-              <a href="#" className="hover:text-foreground transition-colors">LinkedIn</a>
-            </div>
+          <div className="pt-8 border-t border-gray-200 text-sm text-gray-500">
+            © 2025 SearchAuto. Built with AI.
           </div>
         </div>
       </footer>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Menu, User, ChevronDown, LogOut } from "lucide-react";
+import { Menu, User, LogOut } from "lucide-react";
 import { getStoredUser, clearUser, type User as UserType } from "@/lib/auth-api";
 import { useState, useEffect } from "react";
 
@@ -29,15 +29,12 @@ export function Navbar() {
           SearchAuto
         </Link>
 
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-          <div className="group relative">
-            <button className="flex items-center gap-1 hover:text-foreground transition-colors py-2">
-              Models <ChevronDown className="w-3 h-3 opacity-50" />
+        <div className="hidden md:flex items-center gap-1">
+          <Link href="/">
+            <button className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-gray-50">
+              Search
             </button>
-          </div>
-          <a href="#" className="hover:text-foreground transition-colors">Brands</a>
-          <a href="#" className="hover:text-foreground transition-colors">Intelligence</a>
-          <a href="#" className="hover:text-foreground transition-colors">Stories</a>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">

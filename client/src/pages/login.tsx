@@ -33,14 +33,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
       <div className="min-h-screen flex items-center justify-center px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-200">
+          <a href="/" className="block text-center mb-8">
+            <div className="inline-flex items-center gap-2 font-display font-bold text-2xl text-gray-900">
+              <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center shadow-lg shadow-black/20">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+              </div>
+              SearchAuto
+            </div>
+          </a>
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl shadow-black/5 border border-gray-200">
             <div className="mb-8 text-center">
               <h1 className="text-4xl font-display font-bold mb-2 text-gray-900">Welcome Back</h1>
               <p className="text-gray-600">Log in to continue your search</p>

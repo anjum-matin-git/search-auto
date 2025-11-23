@@ -22,8 +22,9 @@ export default function Signup() {
   });
 
   const signupMutation = useMutation({
-    mutationFn: () =>
-      signup({
+    mutationFn: () => {
+      console.log("Calling signup API...");
+      return signup({
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -38,13 +39,16 @@ export default function Signup() {
           },
           fuelType: formData.fuelType,
         },
-      }),
+      });
+    },
     onSuccess: (data) => {
+      console.log("Signup success!", data);
       storeUser(data.user);
       toast.success("Welcome to SearchAuto!");
       setLocation("/");
     },
     onError: (error: any) => {
+      console.error("Signup error:", error);
       toast.error(error.message || "Signup failed");
     },
   });
@@ -72,6 +76,7 @@ export default function Signup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted!", formData);
     signupMutation.mutate();
   };
 

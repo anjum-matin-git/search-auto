@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     location: Optional[str] = None
     postal_code: Optional[str] = None
     initial_preferences: Optional[Dict[str, Any]] = None
+    access_token: Optional[str] = None  # JWT token for authentication
     
     class Config:
         from_attributes = True

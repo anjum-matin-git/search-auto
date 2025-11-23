@@ -7,7 +7,7 @@ from typing import Optional
 
 from db.base import get_db
 from db.models import User
-from core.auth import get_optional_user, get_current_user
+from core.jwt_auth import get_optional_user_jwt
 from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
 from agents.search.workflow import run_search
 from services.credits_service import CreditsService
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 @router.post("", response_model=SearchResponse)
 async def search_cars(
     request: SearchRequest,
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: Optional[User] = Depends(get_optional_user_jwt),
     db: Session = Depends(get_db)
 ):
     """
@@ -34,7 +34,8 @@ async def search_cars(
     
     # For authenticated users, check and deduct credits atomically
     if current_user:
-        user_id = int(current_user.id)
+        # Cast SQLAlchemy Column to int safely
+        user_id = current_user.id if isinstance(current_user.id, int) else int(current_user.id)
         
         # Check quota before search
         has_quota = credits_service.check_quota(user_id)

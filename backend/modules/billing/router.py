@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from db.base import get_db
 from db.models import Plan, User, UserSubscription
 from services.credits_service import CreditsService
-from core.auth import get_current_user
+from core.jwt_auth import get_current_user_jwt
 from .schemas import (
     PlanResponse,
     CheckoutRequest, 
@@ -17,10 +17,21 @@ from .schemas import (
     ContactSalesRequest
 )
 from core.logging import get_logger
+from .webhooks import process_webhook
+from fastapi import Request
 import os
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/billing", tags=["billing"])
+
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Stripe webhook endpoint for payment events.
+    Handles subscription creation, updates, and payment success.
+    """
+    return await process_webhook(request, db)
 
 
 @router.get("/plans", response_model=List[PlanResponse])
@@ -33,7 +44,7 @@ async def list_plans(db: Session = Depends(get_db)):
 @router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout(
     request: CheckoutRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
     """Create Stripe checkout session for a plan."""
@@ -97,7 +108,7 @@ async def create_checkout(
 
 @router.get("/credits", response_model=CreditsResponse)
 async def get_credits(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
     """Get authenticated user's current credit balance and subscription status."""

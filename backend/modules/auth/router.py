@@ -7,30 +7,41 @@ from sqlalchemy.orm import Session
 from db.base import get_db
 from modules.auth.service import AuthService
 from modules.auth.schemas import SignupRequest, LoginRequest, UpdatePreferencesRequest, UserResponse
+from core.jwt_auth import create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/signup", response_model=UserResponse)
 def signup(request: SignupRequest, db: Session = Depends(get_db)):
-    """Create a new user account."""
+    """Create a new user account and return JWT token."""
     auth_service = AuthService(db)
     user_data = auth_service.signup(
         username=request.username,
         email=request.email,
         password=request.password
     )
+    
+    # Generate JWT token
+    access_token = create_access_token(user_data["id"], user_data["email"])
+    user_data["access_token"] = access_token
+    
     return user_data
 
 
 @router.post("/login", response_model=UserResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    """Authenticate a user."""
+    """Authenticate a user and return JWT token."""
     auth_service = AuthService(db)
     user_data = auth_service.login(
         username=request.username,
         password=request.password
     )
+    
+    # Generate JWT token
+    access_token = create_access_token(user_data["id"], user_data["email"])
+    user_data["access_token"] = access_token
+    
     return user_data
 
 

@@ -141,21 +141,6 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
           </div>
         </motion.div>
       </div>
-
-      {/* Scroll Indicator */}
-      <motion.div
-        className="absolute bottom-32 left-1/2 transform -translate-x-1/2"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <div className="w-6 h-10 border-2 border-gray-300 rounded-full p-1">
-          <motion.div
-            className="w-1 h-2 bg-black rounded-full mx-auto"
-            animate={{ y: [0, 16, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </div>
-      </motion.div>
     </section>
   );
 }

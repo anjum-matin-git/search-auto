@@ -9,6 +9,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     createProxyMiddleware({
       target: "http://localhost:3000",
       changeOrigin: true,
+      pathRewrite: (path) => `/api${path}`,
       logLevel: "debug",
     })
   );

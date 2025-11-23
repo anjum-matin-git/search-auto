@@ -11,7 +11,7 @@ from core.logging import get_logger
 
 logger = get_logger(__name__)
 
-pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 class AuthService:

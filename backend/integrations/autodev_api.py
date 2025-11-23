@@ -205,7 +205,7 @@ class AutoDevAPI:
                     "dealer_phone": dealer_phone,
                     "dealer_address": full_address,
                     "source": "Auto.dev",
-                    "url": listing.get("clickoffUrl", listing.get("vdpUrl", "")),
+                    "sourceUrl": listing.get("clickoffUrl", listing.get("vdpUrl", "")),
                     "description": description,
                     "features": features if features else ["Well Maintained"],
                     "images": images[:8] if images else [],

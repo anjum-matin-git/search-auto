@@ -94,7 +94,7 @@ export default function Signup() {
                 <div
                   key={s}
                   className={`h-1 flex-1 rounded-full transition-all ${
-                    s <= step ? "bg-gray-900" : "bg-gray-200"
+                    s <= step ? "bg-black" : "bg-gray-200"
                   }`}
                 />
               ))}
@@ -163,7 +163,7 @@ export default function Signup() {
                         onClick={() => toggleSelection("carTypes", type)}
                         className={`p-4 rounded-xl border-2 transition-all ${
                           formData.carTypes.includes(type)
-                            ? "border-gray-900 bg-gray-50 text-gray-900"
+                            ? "border-black bg-gray-50 text-gray-900"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
                         data-testid={`type-${type.toLowerCase()}`}
@@ -184,7 +184,7 @@ export default function Signup() {
                           onClick={() => toggleSelection("brands", brand)}
                           className={`px-3 py-2 rounded-lg text-sm transition-all ${
                             formData.brands.includes(brand)
-                              ? "bg-gray-900 text-white"
+                              ? "bg-black text-white"
                               : "bg-gray-100 hover:bg-gray-200"
                           }`}
                           data-testid={`brand-${brand.toLowerCase()}`}
@@ -235,7 +235,7 @@ export default function Signup() {
                           onClick={() => setFormData({ ...formData, fuelType: fuel })}
                           className={`px-4 py-3 rounded-xl transition-all ${
                             formData.fuelType === fuel
-                              ? "bg-gray-900 text-white"
+                              ? "bg-black text-white"
                               : "bg-gray-100 hover:bg-gray-200"
                           }`}
                           data-testid={`fuel-${fuel.toLowerCase()}`}
@@ -263,7 +263,7 @@ export default function Signup() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all flex items-center justify-center gap-2"
                     data-testid="button-next"
                   >
                     Next <ArrowRight className="w-4 h-4" />
@@ -272,7 +272,7 @@ export default function Signup() {
                   <button
                     type="submit"
                     disabled={signupMutation.isPending}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     data-testid="button-signup"
                   >
                     {signupMutation.isPending ? (

@@ -56,13 +56,13 @@ export default function Home() {
           <section className="py-32 container mx-auto px-6">
             <div className="flex flex-col items-center justify-center gap-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full blur-2xl opacity-30 animate-pulse" />
-                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black rounded-full blur-2xl opacity-10 animate-pulse" />
+                <div className="relative w-20 h-20 rounded-full bg-black flex items-center justify-center shadow-2xl shadow-black/20">
                   <Loader2 className="w-10 h-10 animate-spin text-white" />
                 </div>
               </div>
               <div className="text-center max-w-lg">
-                <h2 className="text-3xl font-display font-bold mb-3 bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
+                <h2 className="text-3xl font-display font-bold mb-3 text-gray-900">
                   AI Agent at Work
                 </h2>
                 <p className="text-gray-600 text-lg leading-relaxed">
@@ -72,7 +72,7 @@ export default function Home() {
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
+                      className="w-2 h-2 rounded-full bg-black"
                       style={{
                         animation: `pulse 1.5s ease-in-out infinite`,
                         animationDelay: `${i * 0.15}s`
@@ -124,7 +124,7 @@ export default function Home() {
                     key={filter}
                     className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
                       i === 0 
-                        ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30' 
+                        ? 'bg-black text-white shadow-lg shadow-black/20' 
                         : 'text-gray-600 hover:text-gray-900 hover:bg-white'
                     }`}
                     data-testid={`filter-${filter.toLowerCase()}`}
@@ -141,20 +141,19 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="mt-32 py-24 bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-cyan-50/50 rounded-[3rem] text-center border border-purple-200/30 relative overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-cyan-500/5" />
+            <div className="mt-32 py-24 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-[3rem] text-center border border-gray-200 relative overflow-hidden">
                <div className="relative max-w-2xl mx-auto px-6">
-                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-purple-200/50 text-purple-700 text-sm font-semibold mb-6">
+                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black text-white text-sm font-semibold mb-6 shadow-lg shadow-black/20">
                    <Sparkles className="w-4 h-4" />
                    Advanced AI Search
                  </div>
-                 <h3 className="text-4xl md:text-5xl font-display font-bold mb-6 tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-600 bg-clip-text text-transparent">
+                 <h3 className="text-4xl md:text-5xl font-display font-bold mb-6 tracking-tight text-gray-900">
                    Still looking for the one?
                  </h3>
                  <p className="text-gray-700 text-lg mb-10 leading-relaxed max-w-xl mx-auto">
                    Our deep-search algorithm accesses private listings and auction data to find rare specifications that match your exact criteria.
                  </p>
-                 <button className="px-10 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:shadow-2xl hover:shadow-purple-500/40 transition-all font-semibold rounded-full text-lg" data-testid="button-deep-search">
+                 <button className="px-10 py-5 bg-black text-white hover:bg-gray-900 hover:shadow-2xl hover:shadow-black/30 transition-all font-semibold rounded-full text-lg" data-testid="button-deep-search">
                    Start Deep Search →
                  </button>
                </div>
@@ -171,10 +170,10 @@ export default function Home() {
                 </p>
               ) : (
                 <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-900" />
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-black" />
                   <h3 className="text-xl font-semibold mb-2 text-gray-900">Sign up to see nearby cars</h3>
                   <p className="text-gray-600 mb-6">Get personalized recommendations based on your location and preferences</p>
-                  <a href="/signup" className="inline-block px-8 py-3 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-all">
+                  <a href="/signup" className="inline-block px-8 py-3 bg-black text-white rounded-full font-semibold hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all">
                     Get Started
                   </a>
                 </div>
@@ -198,7 +197,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 md:col-span-1">
               <a href="#" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-gray-900 mb-6">
-                <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center shadow-lg shadow-black/20">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                   </svg>

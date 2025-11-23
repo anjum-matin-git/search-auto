@@ -42,4 +42,11 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """Initialize database (create tables if they don't exist)."""
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        # Log but don't crash - DB might not be accessible yet
+        import structlog
+        logger = structlog.get_logger()
+        logger.warning("database_init_failed", error=str(e))
+        # Continue running - API endpoints will fail gracefully if DB is down

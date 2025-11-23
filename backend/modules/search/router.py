@@ -50,6 +50,8 @@ async def search_cars(
         try:
             credits_service.deduct_credit(user_id)
             logger.info("credit_deducted_before_search", user_id=user_id)
+            # Commit the transaction to release the user row lock
+            db.commit()
         except AppException as e:
             # Re-raise 402 errors (no credits)
             if e.status_code == 402:

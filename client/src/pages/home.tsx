@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { Hero } from "@/components/hero";
 import { CarCard } from "@/components/car-card";
+import { AuthModal } from "@/components/auth-modal";
 import { searchCars, type CarResult } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth-api";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
@@ -11,6 +12,7 @@ import { toast } from "sonner";
 export default function Home() {
   const [results, setResults] = useState<CarResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const user = getStoredUser();
 
   const nearbyCarsQuery = useQuery({
@@ -39,6 +41,10 @@ export default function Home() {
   });
 
   const handleSearch = (query: string) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
     searchMutation.mutate(query);
   };
 
@@ -48,6 +54,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white text-foreground">
       <Navbar />
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
       
       <main>
         <Hero onSearch={handleSearch} isSearching={searchMutation.isPending} />

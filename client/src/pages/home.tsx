@@ -55,15 +55,12 @@ export default function Home() {
         {searchMutation.isPending && (
           <section className="py-32 container mx-auto px-6">
             <div className="flex flex-col items-center justify-center gap-6">
-              <div className="relative">
-                <Loader2 className="w-12 h-12 animate-spin text-transparent bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text" />
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 blur-xl opacity-30 animate-pulse" />
-              </div>
+              <Loader2 className="w-12 h-12 animate-spin text-gray-900" />
               <div className="text-center">
-                <h2 className="text-2xl font-display font-semibold mb-2 bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
-                  🤖 AI Agent at Work
+                <h2 className="text-2xl font-display font-semibold mb-2 text-gray-900">
+                  AI Agent at Work
                 </h2>
-                <p className="text-muted-foreground max-w-md">
+                <p className="text-gray-600 max-w-md">
                   Scraping AutoTrader and dealership websites, analyzing specifications, and finding the perfect matches for you...
                 </p>
               </div>
@@ -77,41 +74,41 @@ export default function Home() {
               <div>
                 {!hasSearched && user ? (
                   <>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-cyan-100 text-purple-700 text-xs font-medium mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium mb-4">
                       <MapPin className="w-3 h-3" />
                       Near {user.location || user.postalCode}
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-display font-semibold mb-4 tracking-tight">
+                    <h2 className="text-4xl md:text-5xl font-display font-semibold mb-4 tracking-tight text-gray-900">
                       Cars Near You
                     </h2>
-                    <p className="text-muted-foreground text-lg max-w-md">
+                    <p className="text-gray-600 text-lg max-w-md">
                       Based on your location, here are some great vehicles available nearby.
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-cyan-100 text-purple-700 text-xs font-medium mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium mb-4">
                       <Sparkles className="w-3 h-3" />
                       AI Matched
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-display font-semibold mb-4 tracking-tight">
+                    <h2 className="text-4xl md:text-5xl font-display font-semibold mb-4 tracking-tight text-gray-900">
                       Curated for You
                     </h2>
-                    <p className="text-muted-foreground text-lg max-w-md">
+                    <p className="text-gray-600 text-lg max-w-md">
                       Based on your search, our AI has selected these exceptional vehicles from real listings.
                     </p>
                   </>
                 )}
               </div>
               
-              <div className="flex gap-2 bg-secondary p-1.5 rounded-full">
+              <div className="flex gap-2 bg-gray-100 p-1.5 rounded-full">
                 {["All", "Sports", "SUV", "Electric", "Sedan"].map((filter, i) => (
                   <button 
                     key={filter}
                     className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
                       i === 0 
-                        ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/20' 
-                        : 'text-muted-foreground hover:text-foreground'
+                        ? 'bg-gray-900 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                     data-testid={`filter-${filter.toLowerCase()}`}
                   >
@@ -127,15 +124,15 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="mt-32 py-24 bg-gradient-to-br from-purple-50 to-cyan-50 rounded-[3rem] text-center relative overflow-hidden border border-purple-100">
+            <div className="mt-32 py-24 bg-gray-50 rounded-[3rem] text-center border border-gray-200">
                <div className="max-w-2xl mx-auto px-6">
-                 <h3 className="text-3xl md:text-4xl font-display font-semibold mb-6 tracking-tight bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
+                 <h3 className="text-3xl md:text-4xl font-display font-semibold mb-6 tracking-tight text-gray-900">
                    Still looking for the one?
                  </h3>
-                 <p className="text-muted-foreground text-lg mb-10 leading-relaxed">
+                 <p className="text-gray-600 text-lg mb-10 leading-relaxed">
                    Our deep-search algorithm can access private listings and auction data to find rare specifications.
                  </p>
-                 <button className="px-10 py-4 bg-gradient-to-r from-purple-500 to-cyan-500 text-white hover:shadow-2xl hover:shadow-purple-500/30 transition-all duration-300 font-medium rounded-full text-lg" data-testid="button-deep-search">
+                 <button className="px-10 py-4 bg-gray-900 text-white hover:bg-gray-800 transition-all font-medium rounded-full text-lg" data-testid="button-deep-search">
                    Start Deep Search
                  </button>
                </div>
@@ -147,15 +144,15 @@ export default function Home() {
           <section className="py-32 container mx-auto px-6">
             <div className="text-center max-w-md mx-auto">
               {user ? (
-                <p className="text-muted-foreground">
+                <p className="text-gray-600">
                   {nearbyCarsQuery.isLoading ? "Loading nearby cars..." : "No cars available in your area yet. Try searching for specific models above."}
                 </p>
               ) : (
-                <div className="bg-gradient-to-br from-purple-50 to-cyan-50 p-8 rounded-3xl border border-purple-100">
-                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-                  <h3 className="text-xl font-semibold mb-2">Sign up to see nearby cars</h3>
-                  <p className="text-muted-foreground mb-6">Get personalized recommendations based on your location and preferences</p>
-                  <a href="/signup" className="inline-block px-8 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-full font-medium hover:shadow-lg transition-all">
+                <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200">
+                  <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-900" />
+                  <h3 className="text-xl font-semibold mb-2 text-gray-900">Sign up to see nearby cars</h3>
+                  <p className="text-gray-600 mb-6">Get personalized recommendations based on your location and preferences</p>
+                  <a href="/signup" className="inline-block px-8 py-3 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-all">
                     Get Started
                   </a>
                 </div>
@@ -167,8 +164,8 @@ export default function Home() {
         {hasSearched && !searchMutation.isPending && results.length === 0 && (
           <section className="py-32 container mx-auto px-6">
             <div className="text-center max-w-md mx-auto">
-              <h2 className="text-2xl font-display font-semibold mb-4">No results found</h2>
-              <p className="text-muted-foreground">Try adjusting your search criteria or use different keywords.</p>
+              <h2 className="text-2xl font-display font-semibold mb-4 text-gray-900">No results found</h2>
+              <p className="text-gray-600">Try adjusting your search criteria or use different keywords.</p>
             </div>
           </section>
         )}
@@ -178,8 +175,8 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 md:col-span-1">
-              <a href="#" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-foreground mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 text-white rounded-lg flex items-center justify-center">
+              <a href="#" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-gray-900 mb-6">
+                <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                   </svg>

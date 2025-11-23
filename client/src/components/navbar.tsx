@@ -21,7 +21,7 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100 transition-all duration-300">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-foreground">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 text-white rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             </svg>
@@ -64,7 +64,7 @@ export function Navbar() {
                 </button>
               </Link>
               <Link href="/signup">
-                <button className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:shadow-lg transition-all shadow-lg shadow-purple-500/20">
+                <button className="bg-gray-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-gray-800 transition-all">
                   Sign up
                 </button>
               </Link>

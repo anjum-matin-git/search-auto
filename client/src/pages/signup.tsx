@@ -76,33 +76,17 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-white">
-      {/* Subtle SVG Pattern */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.02] pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="signup-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
-            <circle cx="100" cy="100" r="80" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
-            <circle cx="100" cy="100" r="60" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
-            <circle cx="100" cy="100" r="40" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
-          </pattern>
-          <linearGradient id="signup-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#signup-pattern)" />
-      </svg>
-
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-white">
+      <div className="min-h-screen flex items-center justify-center px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-2xl"
         >
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 md:p-12 shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-200">
             <div className="mb-8">
-              <h1 className="text-4xl font-display font-bold mb-2">Join SearchAuto</h1>
-              <p className="text-muted-foreground">Let's find your perfect car together</p>
+              <h1 className="text-4xl font-display font-bold mb-2 text-gray-900">Join SearchAuto</h1>
+              <p className="text-gray-600">Let's find your perfect car together</p>
             </div>
 
             <div className="flex gap-2 mb-8">
@@ -110,7 +94,7 @@ export default function Signup() {
                 <div
                   key={s}
                   className={`h-1 flex-1 rounded-full transition-all ${
-                    s <= step ? "bg-gradient-to-r from-purple-500 to-cyan-500" : "bg-gray-200"
+                    s <= step ? "bg-gray-900" : "bg-gray-200"
                   }`}
                 />
               ))}
@@ -179,7 +163,7 @@ export default function Signup() {
                         onClick={() => toggleSelection("carTypes", type)}
                         className={`p-4 rounded-xl border-2 transition-all ${
                           formData.carTypes.includes(type)
-                            ? "border-purple-500 bg-purple-50 text-purple-700"
+                            ? "border-gray-900 bg-gray-50 text-gray-900"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
                         data-testid={`type-${type.toLowerCase()}`}
@@ -200,7 +184,7 @@ export default function Signup() {
                           onClick={() => toggleSelection("brands", brand)}
                           className={`px-3 py-2 rounded-lg text-sm transition-all ${
                             formData.brands.includes(brand)
-                              ? "bg-cyan-500 text-white"
+                              ? "bg-gray-900 text-white"
                               : "bg-gray-100 hover:bg-gray-200"
                           }`}
                           data-testid={`brand-${brand.toLowerCase()}`}
@@ -251,7 +235,7 @@ export default function Signup() {
                           onClick={() => setFormData({ ...formData, fuelType: fuel })}
                           className={`px-4 py-3 rounded-xl transition-all ${
                             formData.fuelType === fuel
-                              ? "bg-gradient-to-r from-purple-500 to-cyan-500 text-white"
+                              ? "bg-gray-900 text-white"
                               : "bg-gray-100 hover:bg-gray-200"
                           }`}
                           data-testid={`fuel-${fuel.toLowerCase()}`}
@@ -279,7 +263,7 @@ export default function Signup() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
                     data-testid="button-next"
                   >
                     Next <ArrowRight className="w-4 h-4" />
@@ -288,7 +272,7 @@ export default function Signup() {
                   <button
                     type="submit"
                     disabled={signupMutation.isPending}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     data-testid="button-signup"
                   >
                     {signupMutation.isPending ? (

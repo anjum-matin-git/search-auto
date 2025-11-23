@@ -1,11 +1,10 @@
 """
-SQLAlchemy database models with pgvector support.
+SQLAlchemy database models.
 """
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
 
 from .base import Base
 
@@ -91,8 +90,6 @@ class Car(Base):
     images = Column(ARRAY(String))
     description = Column(Text)
     
-    embedding = Column(Vector(1536))
-    
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -105,7 +102,6 @@ class Search(Base):
     
     query = Column(Text, nullable=False)
     extracted_features = Column(JSON)
-    query_embedding = Column(Vector(1536))
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -135,7 +131,6 @@ class UserPreference(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    preference_embedding = Column(Vector(1536))
     preferences = Column(JSON)
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

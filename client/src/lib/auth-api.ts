@@ -24,20 +24,38 @@ export async function signup(data: {
   location?: string;
   initialPreferences?: any;
 }): Promise<{ success: boolean; user: User }> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    console.log("Making fetch request to:", `${API_BASE_URL}/api/auth/signup`);
+    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Signup failed");
+    console.log("Response status:", response.status);
+    console.log("Response ok:", response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response:", errorText);
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { error: errorText };
+      }
+      throw new Error(error.error || error.detail || "Signup failed");
+    }
+
+    const result = await response.json();
+    console.log("Success response:", result);
+    return result;
+  } catch (err) {
+    console.error("Fetch error:", err);
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function login(email: string, password: string): Promise<{ success: boolean; user: User }> {

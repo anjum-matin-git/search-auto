@@ -1,0 +1,18 @@
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs-20_x
+    pkgs.python311
+    pkgs.stdenv.cc.cc.lib
+    pkgs.zlib
+  ];
+  env = {
+    LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+      pkgs.stdenv.cc.cc.lib
+      pkgs.zlib
+    ];
+    PYTHON_LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+      pkgs.stdenv.cc.cc.lib
+      pkgs.zlib
+    ];
+  };
+}

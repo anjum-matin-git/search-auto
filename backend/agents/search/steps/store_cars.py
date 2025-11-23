@@ -33,7 +33,7 @@ async def store_cars(state: SearchState) -> Dict[str, Any]:
         stored_car_ids: List[int] = []
         
         for car_data in state["all_scraped_cars"]:
-            embedding = openai_client.create_car_embedding(car_data)
+            embedding = await openai_client.create_car_embedding(car_data)
             
             car_data_with_embedding = {
                 **car_data,

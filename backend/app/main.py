@@ -1,6 +1,7 @@
 """
 Main FastAPI application with routes and middleware.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,16 +9,29 @@ from fastapi.responses import JSONResponse
 from core.config import settings
 from core.logging import configure_logging, get_logger
 from core.exceptions import AppException
+from db.base import init_db
 from modules.auth.router import router as auth_router
 from modules.search.router import router as search_router
 
 configure_logging()
 logger = get_logger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events."""
+    logger.info("application_startup")
+    init_db()
+    logger.info("database_initialized")
+    yield
+    logger.info("application_shutdown")
+
+
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="AI-powered car search with LangGraph"
+    description="AI-powered car search with LangGraph",
+    lifespan=lifespan
 )
 
 app.add_middleware(

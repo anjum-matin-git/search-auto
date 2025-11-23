@@ -25,9 +25,9 @@ async def analyze_query(state: SearchState) -> Dict[str, Any]:
     
     openai_client = OpenAIClient()
     
-    extracted_features = openai_client.extract_features(state["query"])
+    extracted_features = await openai_client.extract_features(state["query"])
     
-    query_embedding = openai_client.create_embedding(state["query"])
+    query_embedding = await openai_client.create_embedding(state["query"])
     
     logger.info(
         "step_analyze_query_complete",

@@ -35,52 +35,89 @@ Preferred communication style: Simple, everyday language.
 - Custom Vite plugin for OpenGraph image meta tag management
 - Runtime error modal overlay for development
 
-### Backend Architecture
+### Backend Architecture (Python + FastAPI)
+
+**MIGRATION COMPLETED**: Full Python backend with clean, modular architecture
 
 **Server Framework**
-- Express.js as the HTTP server
-- Separate development (`index-dev.ts`) and production (`index-prod.ts`) entry points
-- Development mode integrates Vite middleware for SSR-like experience
-- Production mode serves pre-built static assets
+- FastAPI for high-performance async API
+- Uvicorn ASGI server with auto-reload in development
+- CORS middleware for frontend integration
+- Centralized exception handling with custom error responses
+- Pydantic v2 for request/response validation
 
-**AI Agent System (LangGraph)**
-- StateGraph-based workflow with typed state annotations
-- Multi-step agentic process:
-  1. **Query Analysis**: Extract car features from natural language using GPT-5
-  2. **Web Scraping**: Parallel scraping of AutoTrader and CarGurus
-  3. **Embedding Generation**: Create vector embeddings for semantic search
-  4. **Database Storage**: Store scraped cars with embeddings
-  5. **Similarity Search**: Find matching vehicles using cosine similarity
+**AI Agent System (LangGraph + Python)**
+- **StateGraph-based workflow** with TypedDict for type safety
+- **5-step modular workflow** (each step is a separate, testable module):
+  1. **analyze_query.py**: Extract car features from natural language using GPT-5
+  2. **scrape_websites.py**: Parallel async scraping of AutoTrader and CarGurus
+  3. **store_cars.py**: Store scraped cars with vector embeddings in PostgreSQL
+  4. **find_similar.py**: Find matching vehicles using cosine similarity on embeddings
+  5. **save_history.py**: Save search history and update user preferences
+- **workflow.py**: Assembles the 5 steps into a cohesive LangGraph pipeline
+- **state.py**: TypedDict state container for clarity and type checking
 
-**OpenAI Integration**
-- GPT-5 model for natural language understanding and feature extraction
+**OpenAI Integration (Python)**
+- **OpenAIClient class** with retry logic using Tenacity
+- GPT-5 for natural language understanding and feature extraction
 - text-embedding-3-small for vector embeddings (1536 dimensions)
 - JSON mode for structured data extraction from user queries
+- Clean typed interface with error handling
 
-**Web Scraping**
-- Axios for HTTP requests
-- Cheerio for HTML parsing
+**Web Scraping (Python)**
+- **httpx** for async HTTP requests
+- **BeautifulSoup** for HTML parsing
+- **Retry logic** with exponential backoff (Tenacity)
 - Mock car generation fallback when scraping fails
-- Graceful error handling with fallback to generated data
+- Graceful error handling with structured logging
 
-**API Design**
-- RESTful endpoints:
-  - `POST /api/search` - Main search endpoint accepting natural language queries
-  - `GET /api/search/history` - User search history retrieval
-- Request/response logging middleware with JSON body capture
-- Error handling middleware for consistent error responses
+**Repository Pattern (Clean Architecture)**
+- **UserRepository**: User CRUD operations
+- **CarRepository**: Car operations with vector similarity search
+- **SearchRepository**: Search history management
+- **SearchResultRepository**: Search-to-car mappings
+- **UserPreferenceRepository**: Learned preferences
+- Clear separation between data access and business logic
+
+**API Design (FastAPI Routers)**
+- **Authentication Module** (`modules/auth/`):
+  - `POST /api/auth/signup` - User registration with bcrypt password hashing
+  - `POST /api/auth/login` - User authentication
+  - `POST /api/auth/preferences` - Update user location and preferences
+- **Search Module** (`modules/search/`):
+  - `POST /api/search` - AI-powered car search (runs LangGraph workflow)
+- **Health Endpoints**:
+  - `GET /` - Root health check
+  - `GET /health` - Detailed health status
+- Pydantic schemas for all requests and responses
+- Automatic validation and error handling
+
+**Structured Logging**
+- **structlog** for JSON-formatted logs
+- Correlation IDs for request tracing
+- Development-friendly console output
+- Production-ready JSON logs
+- Log levels: INFO, DEBUG, ERROR
+
+**Configuration Management**
+- **Pydantic Settings** for environment-based config
+- 12-factor app principles
+- Type-safe settings with validation
+- Environment variable loading from .env
 
 ### Data Storage
 
 **Database: PostgreSQL via Neon**
 - Neon serverless PostgreSQL for scalable, managed database hosting
-- Connection pooling via `@neondatabase/serverless`
-- WebSocket support for edge/serverless environments
+- Python: Connection via psycopg2-binary with connection pooling
+- pgvector extension enabled for vector similarity search
 
-**ORM: Drizzle**
-- Type-safe schema definitions in `shared/schema.ts`
-- Schema-first approach with automatic TypeScript type generation
-- Migration system configured in `drizzle.config.ts`
+**ORM: SQLAlchemy 2.x (Python)**
+- Declarative models in `backend/db/models.py`
+- Type-safe ORM with relationship mapping
+- Session management with dependency injection
+- Migration support via Alembic (configured but not yet used)
+- **Repository Pattern** for clean data access layer
 
 **Database Schema**
 - **users**: Authentication and user management
@@ -126,22 +163,35 @@ Preferred communication style: Simple, everyday language.
 - Fallback to mock data generation when scraping unavailable
 
 **Third-Party Libraries**
-- **@langchain/langgraph**: Agentic workflow orchestration
-- **@langchain/openai**: OpenAI integration for LangChain
+
+*Frontend:*
 - **Radix UI**: ~30 accessible UI primitive components
-- **Cheerio**: Server-side HTML parsing
-- **Drizzle ORM**: Type-safe database queries
-- **bcryptjs**: Password hashing for authentication
-- **Zod**: Runtime schema validation (via drizzle-zod)
+- **Vite Plugins**: React, Tailwind, Replit integration
+- **TypeScript**: Strict mode enabled with path aliases
+
+*Python Backend:*
+- **FastAPI**: Modern async web framework
+- **LangChain + LangGraph**: Agentic workflow orchestration (Python)
+- **langchain-openai**: OpenAI integration for LangChain
+- **SQLAlchemy**: ORM with async support
+- **pgvector**: PostgreSQL vector extension for Python
+- **Pydantic**: Data validation and settings management
+- **structlog**: Structured logging with JSON output
+- **httpx**: Async HTTP client for web scraping
+- **BeautifulSoup + selectolax**: HTML parsing
+- **passlib + bcrypt**: Password hashing
+- **python-jose**: JWT token handling
+- **Tenacity**: Retry logic with exponential backoff
 
 **Font Services**
 - Google Fonts CDN for Outfit, Plus Jakarta Sans, JetBrains Mono
 
-**Development Dependencies**
-- **Vite Plugins**: React, Tailwind, Replit integration (cartographer, dev-banner)
-- **TypeScript**: Strict mode enabled with path aliases
-- **ESBuild**: Production bundling for server code
-
 ### Authentication Strategy
 
-Basic username/password authentication prepared in schema, but not yet implemented in routes. Ready for session-based or JWT authentication addition.
+**Python Backend Implementation (COMPLETED)**
+- bcrypt password hashing via passlib
+- User signup with username, email, password validation
+- User login with credential verification
+- AuthService layer with repository pattern
+- Pydantic schemas for request validation
+- Ready for JWT token-based sessions (python-jose installed)

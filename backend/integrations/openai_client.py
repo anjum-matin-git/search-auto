@@ -4,8 +4,9 @@ Clean, typed interface with error handling.
 """
 from typing import List, Dict, Any
 import json
+import asyncio
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
@@ -16,10 +17,10 @@ logger = get_logger(__name__)
 
 
 class OpenAIClient:
-    """Client for OpenAI API operations."""
+    """Client for OpenAI API operations (async)."""
     
     def __init__(self):
-        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         self.model = settings.openai_model
         self.embedding_model = settings.openai_embedding_model
     
@@ -28,7 +29,7 @@ class OpenAIClient:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True
     )
-    def chat_completion(
+    async def chat_completion(
         self,
         messages: List[Dict[str, str]],
         response_format: str = "text",
@@ -57,7 +58,7 @@ class OpenAIClient:
             if response_format == "json_object":
                 kwargs["response_format"] = {"type": "json_object"}
             
-            response = self.client.chat.completions.create(**kwargs)
+            response = await self.client.chat.completions.create(**kwargs)
             content = response.choices[0].message.content
             
             logger.info("openai_chat_success", tokens_used=response.usage.total_tokens)
@@ -67,7 +68,7 @@ class OpenAIClient:
             logger.error("openai_chat_error", error=str(e))
             raise ExternalServiceException("OpenAI", str(e))
     
-    def extract_features(self, query: str) -> Dict[str, Any]:
+    async def extract_features(self, query: str) -> Dict[str, Any]:
         """
         Extract car features from natural language query using GPT.
         
@@ -101,7 +102,7 @@ Only include fields mentioned in the query. Be flexible with synonyms."""
             }
         ]
         
-        response = self.chat_completion(messages, response_format="json_object")
+        response = await self.chat_completion(messages, response_format="json_object")
         
         try:
             features = json.loads(response)
@@ -116,7 +117,7 @@ Only include fields mentioned in the query. Be flexible with synonyms."""
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True
     )
-    def create_embedding(self, text: str) -> List[float]:
+    async def create_embedding(self, text: str) -> List[float]:
         """
         Create text embedding using OpenAI's embedding model.
         
@@ -129,7 +130,7 @@ Only include fields mentioned in the query. Be flexible with synonyms."""
         try:
             logger.info("openai_embedding_request", text_length=len(text))
             
-            response = self.client.embeddings.create(
+            response = await self.client.embeddings.create(
                 model=self.embedding_model,
                 input=text,
             )
@@ -142,7 +143,7 @@ Only include fields mentioned in the query. Be flexible with synonyms."""
             logger.error("openai_embedding_error", error=str(e))
             raise ExternalServiceException("OpenAI Embeddings", str(e))
     
-    def create_car_embedding(self, car_data: Dict[str, Any]) -> List[float]:
+    async def create_car_embedding(self, car_data: Dict[str, Any]) -> List[float]:
         """
         Create embedding for a car based on its features.
         
@@ -169,4 +170,4 @@ Only include fields mentioned in the query. Be flexible with synonyms."""
             text_parts.append(f"Description: {car_data['description']}")
         
         text = " | ".join(text_parts)
-        return self.create_embedding(text)
+        return await self.create_embedding(text)

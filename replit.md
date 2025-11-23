@@ -86,6 +86,10 @@ Preferred communication style: Simple, everyday language.
   - `POST /api/auth/preferences` - Update user location and preferences
 - **Search Module** (`modules/search/`):
   - `POST /api/search` - AI-powered car search (runs LangGraph workflow)
+  - `GET /api/search/personalized` - Personalized results on login (Nov 23, 2025)
+    - Returns cached results from user's last search, OR
+    - Location-based Auto.dev query using user's location/postal_code
+    - Fallback chain: location → postal_code → "California" default
 - **Health Endpoints**:
   - `GET /` - Root health check
   - `GET /health` - Detailed health status
@@ -195,3 +199,32 @@ Preferred communication style: Simple, everyday language.
 - AuthService layer with repository pattern
 - Pydantic schemas for request validation
 - Ready for JWT token-based sessions (python-jose installed)
+### Feature: Personalized Results (Nov 23, 2025)
+
+**Implementation**
+- On login, frontend automatically fetches personalized car recommendations
+- Backend serves either:
+  1. **Cached Search Results**: User's most recent search with matched cars
+  2. **Location-Based Results**: Auto.dev query using user's location/postal_code
+- Atomic search history persistence using flush() for ID generation before commit
+- SearchRepository.get_latest_with_results() joins searches + searchResults + cars
+
+**UX Indicators**
+- "Curated for You" badge for cached search results
+- "Near {location}" badge for location-based results
+- Skeleton loading states during fetch
+- Error fallback to manual search
+
+**Data Flow**
+1. User logs in → Frontend calls GET /api/search/personalized
+2. Backend checks SearchRepository.get_latest_with_results(user_id)
+3. If found: Return cached results with "Curated for You" context
+4. If not found: Query Auto.dev with location fallback → Return with "Near X" context
+5. Frontend displays results with appropriate badges and styling
+
+**Technical Notes**
+- Search persistence wraps Search + SearchResult creation in single transaction
+- Uses db.flush() to get Search.id before creating SearchResults
+- Bulk insert of SearchResults for performance
+- Preference update runs after commit (outside transaction scope)
+- Future hardening: Wrap all three operations in single transaction context

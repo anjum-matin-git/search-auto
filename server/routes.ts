@@ -5,12 +5,12 @@ import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(
-    "/api",
+    "/api/*",
     createProxyMiddleware({
       target: "http://localhost:3000",
       changeOrigin: true,
-      pathRewrite: (path) => `/api${path}`,
-      logLevel: "debug",
+      ws: true,
+      logLevel: "silent",
     })
   );
 

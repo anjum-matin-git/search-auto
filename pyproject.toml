@@ -18,6 +18,7 @@ dependencies = [
     "numpy>=2.3.5",
     "openai>=2.8.1",
     "passlib>=1.7.4",
+    "pgvector>=0.4.1",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",

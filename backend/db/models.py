@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 
 from .base import Base
 
@@ -89,6 +90,8 @@ class Car(Base):
     features = Column(ARRAY(String))
     images = Column(ARRAY(String))
     description = Column(Text)
+    
+    embedding = Column(Vector(1536))
     
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

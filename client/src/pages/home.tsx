@@ -127,7 +127,7 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-              {displayResults.map((car, index) => (
+              {displayResults.map((car: CarResult, index: number) => (
                 <CarCard key={car.id} car={car} index={index} />
               ))}
             </div>

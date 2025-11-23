@@ -33,7 +33,6 @@ class OpenAIClient:
         self,
         messages: List[Dict[str, str]],
         response_format: str = "text",
-        temperature: float = 0.7,
     ) -> str:
         """
         Get chat completion from GPT model.
@@ -41,7 +40,6 @@ class OpenAIClient:
         Args:
             messages: List of message dicts with 'role' and 'content'
             response_format: 'text' or 'json_object'
-            temperature: Sampling temperature (0-2)
         
         Returns:
             Response content as string
@@ -52,7 +50,6 @@ class OpenAIClient:
             kwargs = {
                 "model": self.model,
                 "messages": messages,
-                "temperature": temperature,
             }
             
             if response_format == "json_object":

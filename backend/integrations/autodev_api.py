@@ -194,6 +194,10 @@ class AutoDevAPI:
                 if trim:
                     description += f" {trim}"
                 
+                # Build full URL from vdpUrl (relative path)
+                vdp_url = listing.get("vdpUrl", "")
+                source_url = listing.get("clickoffUrl") or (f"https://www.auto.dev{vdp_url}" if vdp_url else "")
+                
                 car = {
                     "brand": make,
                     "model": model,
@@ -205,7 +209,7 @@ class AutoDevAPI:
                     "dealer_phone": dealer_phone,
                     "dealer_address": full_address,
                     "source": "Auto.dev",
-                    "sourceUrl": listing.get("clickoffUrl", listing.get("vdpUrl", "")),
+                    "sourceUrl": source_url,
                     "description": description,
                     "features": features if features else ["Well Maintained"],
                     "images": images[:8] if images else [],

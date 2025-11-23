@@ -125,7 +125,7 @@ async def search_cars(
             location=car.get("location"),
             type=car.get("type"),
             source=car.get("source"),
-            sourceUrl=car.get("url"),
+            sourceUrl=car.get("sourceUrl") or car.get("url"),
             description=car.get("description"),
             features=car.get("features", []),
             images=car.get("images", []),

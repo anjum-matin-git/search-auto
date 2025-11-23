@@ -6,7 +6,16 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
+  email: text("email").unique().notNull(),
   password: text("password").notNull(),
+  postalCode: text("postal_code"),
+  location: text("location"),
+  initialPreferences: jsonb("initial_preferences").$type<{
+    carTypes?: string[];
+    brands?: string[];
+    priceRange?: { min?: number; max?: number };
+    fuelType?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

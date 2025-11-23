@@ -3,9 +3,66 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { searchCars } from "./lib/car-search-agent";
 import { createEmbedding } from "./lib/openai-client";
+import { signup, login } from "./lib/auth";
 import { insertSearchSchema, insertUserPreferencesSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { username, email, password, postalCode, location, initialPreferences } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required" });
+      }
+
+      const user = await signup({
+        username,
+        email,
+        password,
+        postalCode,
+        location,
+        initialPreferences,
+      });
+
+      res.json({ success: true, user });
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      res.status(400).json({ error: error.message || "Signup failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const user = await login(email, password);
+      res.json({ success: true, user });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(401).json({ error: error.message || "Login failed" });
+    }
+  });
+
+  app.get("/api/cars/nearby", async (req, res) => {
+    try {
+      const { location, limit } = req.query;
+      
+      if (!location || typeof location !== "string") {
+        return res.status(400).json({ error: "Location is required" });
+      }
+
+      const cars = await storage.findCarsByLocation(location, parseInt(limit as string) || 10);
+      res.json({ success: true, cars });
+    } catch (error: any) {
+      console.error("Nearby cars error:", error);
+      res.status(500).json({ error: error.message || "Failed to find nearby cars" });
+    }
+  });
+
   app.post("/api/search", async (req, res) => {
     try {
       const { query, userId } = req.body;

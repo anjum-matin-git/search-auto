@@ -1,12 +1,27 @@
-import { Link } from "wouter";
-import { Search, Menu, User, ChevronDown } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Search, Menu, User, ChevronDown, LogOut } from "lucide-react";
+import { getStoredUser, clearUser, type User as UserType } from "@/lib/auth-api";
+import { useState, useEffect } from "react";
 
 export function Navbar() {
+  const [, setLocation] = useLocation();
+  const [user, setUser] = useState<UserType | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
+
+  const handleLogout = () => {
+    clearUser();
+    setUser(null);
+    setLocation("/");
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100 transition-all duration-300">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="font-display font-bold text-2xl tracking-tight flex items-center gap-2 text-foreground">
-          <div className="w-8 h-8 bg-foreground text-white rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-cyan-500 text-white rounded-lg flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             </svg>
@@ -26,12 +41,35 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-secondary rounded-full transition-colors">
-            Log in
-          </button>
-          <button className="bg-foreground text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-foreground/90 transition-colors shadow-lg shadow-black/5">
-            Sign up
-          </button>
+          {user ? (
+            <>
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-secondary rounded-full">
+                <User className="w-4 h-4" />
+                <span className="text-sm font-medium">{user.username}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-secondary rounded-full transition-colors"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4" />
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <button className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium hover:bg-secondary rounded-full transition-colors">
+                  Log in
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-5 py-2 rounded-full text-sm font-medium hover:shadow-lg transition-all shadow-lg shadow-purple-500/20">
+                  Sign up
+                </button>
+              </Link>
+            </>
+          )}
           <button className="md:hidden p-2 hover:bg-secondary rounded-full transition-colors">
             <Menu className="w-5 h-5" />
           </button>

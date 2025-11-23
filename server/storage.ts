@@ -20,11 +20,13 @@ import { eq, and, sql, desc, inArray } from "drizzle-orm";
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   
   createCar(insertCar: InsertCar): Promise<Car>;
   getCarById(id: number): Promise<Car | undefined>;
   findSimilarCars(embedding: number[], limit: number): Promise<Car[]>;
+  findCarsByLocation(location: string, limit: number): Promise<Car[]>;
   updateCarActive(id: number, isActive: boolean): Promise<void>;
   
   createSearch(insertSearch: InsertSearch): Promise<Search>;
@@ -45,6 +47,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
@@ -77,6 +84,14 @@ export class DatabaseStorage implements IStorage {
       LIMIT ${limit}
     `);
     return result.rows as Car[];
+  }
+
+  async findCarsByLocation(location: string, limit: number = 10): Promise<Car[]> {
+    return await db
+      .select()
+      .from(cars)
+      .where(and(eq(cars.isActive, true), sql`${cars.location} ILIKE ${`%${location}%`}`))
+      .limit(limit);
   }
 
   async updateCarActive(id: number, isActive: boolean): Promise<void> {

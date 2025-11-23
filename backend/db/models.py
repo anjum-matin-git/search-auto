@@ -24,7 +24,7 @@ class User(Base):
     stripe_customer_id = Column(String, unique=True)
     
     # Credit system
-    credits_remaining = Column(Integer, default=3)  # Free tier: 3 searches
+    credits_remaining = Column(Integer, default=10)  # Free tier: 10 searches
     unlimited_searches = Column(Boolean, default=False)  # Pro plan
     
     # Relationships

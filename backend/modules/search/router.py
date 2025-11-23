@@ -30,27 +30,29 @@ async def search_cars(
     Unauthenticated users: Limited free search without persistence.
     """
     credits_service = CreditsService(db)
-    user_id = current_user.id if current_user else None
+    user_id: Optional[int] = None
     
     # For authenticated users, check and deduct credits atomically
     if current_user:
+        user_id = int(current_user.id)
+        
         # Check quota before search
-        has_quota = credits_service.check_quota(current_user.id)
+        has_quota = credits_service.check_quota(user_id)
         if not has_quota:
-            logger.warning("search_quota_exceeded", user_id=current_user.id)
+            logger.warning("search_quota_exceeded", user_id=user_id)
             raise AppException("No credits remaining. Please upgrade your plan.", 402)
         
         # Deduct credit BEFORE search (prevents race conditions)
         # If search fails, we could refund, but simpler to deduct upfront
         try:
-            credits_service.deduct_credit(current_user.id)
-            logger.info("credit_deducted_before_search", user_id=current_user.id)
+            credits_service.deduct_credit(user_id)
+            logger.info("credit_deducted_before_search", user_id=user_id)
         except AppException as e:
             # Re-raise 402 errors (no credits)
             if e.status_code == 402:
                 raise
             # For other errors, log and continue
-            logger.error("credit_deduction_failed", user_id=current_user.id, error=str(e))
+            logger.error("credit_deduction_failed", user_id=user_id, error=str(e))
     
     # Run search workflow
     final_state = await run_search(

@@ -7,7 +7,6 @@ import { searchCars, type CarResult } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth-api";
 import { Loader2, MapPin, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import colorfulBg from "@assets/generated_images/colorful_liquid_gradient_distortion.png";
 
 export default function Home() {
   const [results, setResults] = useState<CarResult[]>([]);
@@ -47,14 +46,10 @@ export default function Home() {
   const showResults = hasSearched || (nearbyCarsQuery.data && nearbyCarsQuery.data.length > 0);
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
-      <div className="fixed inset-0 opacity-5 pointer-events-none">
-        <img src={colorfulBg} alt="" className="w-full h-full object-cover" />
-      </div>
-      
+    <div className="min-h-screen bg-white text-foreground">
       <Navbar />
       
-      <main className="relative z-10">
+      <main>
         <Hero onSearch={handleSearch} isSearching={searchMutation.isPending} />
         
         {searchMutation.isPending && (
@@ -133,10 +128,7 @@ export default function Home() {
             </div>
 
             <div className="mt-32 py-24 bg-gradient-to-br from-purple-50 to-cyan-50 rounded-[3rem] text-center relative overflow-hidden border border-purple-100">
-               <div className="absolute inset-0 opacity-20">
-                 <img src={colorfulBg} alt="" className="w-full h-full object-cover" />
-               </div>
-               <div className="relative z-10 max-w-2xl mx-auto px-6">
+               <div className="max-w-2xl mx-auto px-6">
                  <h3 className="text-3xl md:text-4xl font-display font-semibold mb-6 tracking-tight bg-gradient-to-r from-purple-600 to-cyan-600 bg-clip-text text-transparent">
                    Still looking for the one?
                  </h3>
@@ -182,7 +174,7 @@ export default function Home() {
         )}
       </main>
       
-      <footer className="bg-white border-t border-gray-100 py-20 px-6 relative z-10">
+      <footer className="bg-white border-t border-gray-100 py-20 px-6">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-1 md:col-span-1">

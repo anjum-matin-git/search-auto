@@ -5,7 +5,6 @@ import { useMutation } from "@tanstack/react-query";
 import { signup, storeUser } from "@/lib/auth-api";
 import { Loader2, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
-import colorfulBg from "@assets/generated_images/colorful_liquid_gradient_distortion.png";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -78,9 +77,21 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-white">
-      <div className="absolute inset-0 opacity-30">
-        <img src={colorfulBg} alt="Background" className="w-full h-full object-cover" />
-      </div>
+      {/* Subtle SVG Pattern */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.02] pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="signup-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
+            <circle cx="100" cy="100" r="60" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
+            <circle cx="100" cy="100" r="40" fill="none" stroke="url(#signup-gradient)" strokeWidth="1"/>
+          </pattern>
+          <linearGradient id="signup-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#a855f7" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#signup-pattern)" />
+      </svg>
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-6 py-12">
         <motion.div

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Search, Sparkles, Loader2 } from "lucide-react";
-import meshBg from "@assets/generated_images/3d_mesh_gradient_ai_background.png";
-import holoBg from "@assets/generated_images/holographic_ai_gradient_mesh.png";
 
 interface HeroProps {
   onSearch: (query: string) => void;
@@ -29,65 +27,36 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
 
   return (
     <section className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden pt-20">
-      {/* Animated Mesh Gradient Background */}
+      {/* Subtle Distortion Pattern Background */}
       <motion.div 
         style={{ y, opacity }}
         className="absolute inset-0 z-0"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-white z-10" />
-        <motion.img 
-          src={meshBg} 
-          alt="Background" 
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
-          animate={{
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.img 
-          src={holoBg} 
-          alt="Background" 
-          className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
-          animate={{
-            scale: [1.1, 1, 1.1],
-            rotate: [0, 5, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="distortion" x="0" y="0" width="400" height="400" patternUnits="userSpaceOnUse">
+              <path d="M0 200 Q 100 100, 200 200 T 400 200" fill="none" stroke="url(#gradient1)" strokeWidth="2"/>
+              <path d="M200 0 Q 300 100, 200 200 T 200 400" fill="none" stroke="url(#gradient1)" strokeWidth="2"/>
+              <circle cx="200" cy="200" r="150" fill="none" stroke="url(#gradient2)" strokeWidth="1" opacity="0.3"/>
+              <circle cx="200" cy="200" r="100" fill="none" stroke="url(#gradient2)" strokeWidth="1" opacity="0.4"/>
+              <circle cx="200" cy="200" r="50" fill="none" stroke="url(#gradient2)" strokeWidth="1" opacity="0.5"/>
+            </pattern>
+            <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#a855f7" />
+              <stop offset="50%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#06b6d4" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#distortion)" />
+        </svg>
         
-        {/* Floating Orbs */}
-        <motion.div
-          className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-purple-400/30 to-cyan-400/30 rounded-full blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-purple-400/30 rounded-full blur-3xl"
-          animate={{
-            x: [0, -80, 0],
-            y: [0, 60, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {/* Subtle Gradient Orbs */}
+        <div className="absolute top-20 -left-40 w-96 h-96 bg-gradient-to-br from-purple-200/20 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-20 -right-40 w-96 h-96 bg-gradient-to-br from-cyan-200/20 to-transparent rounded-full blur-3xl" />
       </motion.div>
 
       {/* Content */}
@@ -98,19 +67,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <motion.div 
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-white/40 shadow-lg shadow-purple-500/10 text-foreground/80 text-xs font-medium mb-8"
-            animate={{
-              boxShadow: [
-                "0 10px 30px -10px rgba(168, 85, 247, 0.1)",
-                "0 10px 40px -10px rgba(168, 85, 247, 0.3)",
-                "0 10px 30px -10px rgba(168, 85, 247, 0.1)",
-              ],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-gray-200/50 shadow-sm text-foreground/80 text-xs font-medium mb-8"
           >
             <Sparkles className="w-3 h-3 text-purple-500" />
             <span>Powered by AI • Vector Search • Real-time Data</span>
@@ -129,18 +86,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
 
           {/* Search Input */}
           <div className="w-full max-w-2xl mx-auto relative group">
-            <motion.div 
-              className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-700 blur-2xl"
-              animate={{
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <div className="relative flex items-center bg-white/90 backdrop-blur-xl shadow-2xl shadow-black/5 rounded-2xl p-2 border border-white/40 transition-transform duration-300 group-hover:-translate-y-1">
+            <div className="relative flex items-center bg-white shadow-lg shadow-black/5 rounded-2xl p-2 border border-gray-200 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-200">
               <Search className="w-6 h-6 text-muted-foreground ml-4" data-testid="icon-search" />
               <input 
                 type="text"
@@ -155,7 +101,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
               <button 
                 onClick={handleSearch}
                 disabled={isSearching || !searchTerm.trim()}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-purple-500/50 transition-all rounded-xl font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-purple-500/30 transition-all rounded-xl font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="button-search"
               >
                 {isSearching ? (

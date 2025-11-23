@@ -35,7 +35,8 @@ class CarResponse(BaseModel):
 
 class SearchResponse(BaseModel):
     """Response schema for search results."""
+    success: bool = True
     query: str
-    matched_cars: List[CarResponse]
+    count: int
+    results: List[CarResponse]
     search_id: Optional[int] = None
-    total_results: int

@@ -70,8 +70,9 @@ async def search_cars(
     ]
     
     return SearchResponse(
+        success=True,
         query=request.query,
-        matched_cars=matched_cars_with_scores,
-        search_id=final_state.get("search_id"),
-        total_results=len(matched_cars_with_scores)
+        count=len(matched_cars_with_scores),
+        results=matched_cars_with_scores,
+        search_id=final_state.get("search_id")
     )

@@ -22,9 +22,71 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
     Returns:
         Updated state with 'search_id'
     """
-    logger.info("step_save_history_start", user_id=state.get("user_id"))
-    logger.info("step_save_history_complete", search_id=None, note="disabled_temporarily")
-    return {"search_id": None}
+    user_id = state.get("user_id")
+    logger.info("step_save_history_start", user_id=user_id)
+    
+    # Only save history for authenticated users
+    if not user_id:
+        logger.info("step_save_history_complete", search_id=None, note="no_user_id")
+        return {"search_id": None}
+    
+    query = state.get("query")
+    features = state.get("features", {})
+    matched_cars = state.get("matched_cars", [])
+    
+    if not query or not matched_cars:
+        logger.info("step_save_history_complete", search_id=None, note="no_query_or_cars")
+        return {"search_id": None}
+    
+    db = SessionLocal()
+    try:
+        search_repo = SearchRepository(db)
+        result_repo = SearchResultRepository(db)
+        
+        # Create search record
+        search = search_repo.create(
+            user_id=user_id,
+            query=query,
+            extracted_features=features
+        )
+        db.commit()
+        
+        # Link matched cars to this search
+        search_id = int(search.id) if isinstance(search.id, int) else search.id
+        for rank, car in enumerate(matched_cars, start=1):
+            car_id = car.get("id")
+            match_score = car.get("score", 0.0)
+            
+            if car_id:
+                result_repo.create(
+                    search_id=search_id,
+                    car_id=car_id,
+                    match_score=match_score,
+                    rank=rank
+                )
+        
+        db.commit()
+        logger.info("step_save_history_complete", search_id=search.id, matched_count=len(matched_cars))
+        
+        # Update user preferences
+        if features:
+            try:
+                pref_repo = UserPreferenceRepository(db)
+                _update_user_preferences(pref_repo, user_id, features, matched_cars)
+                db.commit()
+            except Exception as e:
+                logger.error("preference_update_error", error=str(e))
+                # Don't fail the whole workflow if preference update fails
+        
+        return {"search_id": search.id}
+        
+    except Exception as e:
+        logger.error("save_history_error", error=str(e))
+        db.rollback()
+        # Don't fail the search if history saving fails
+        return {"search_id": None}
+    finally:
+        db.close()
 
 
 def _update_user_preferences(

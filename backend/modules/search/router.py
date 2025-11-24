@@ -101,15 +101,24 @@ async def search_cars_with_agent(
         autodev = AutoDevAPI()
         postal_code = user_context.get("postal_code") or "M5H2N2"
         
-        # Search for cars (limit to 9 as requested)
+        # Search for cars (fetch 15 to account for invalid prices, then take top 9)
         listings = await autodev.search_listings({
             "postal_code": postal_code,
             "country": "CA",
             "radius_km": 150,
-            "page_size": 9
+            "page_size": 15
         })
         
-        logger.info("direct_search_complete", count=len(listings))
+        # Filter out cars with invalid prices (like "accepting_offers")
+        valid_listings = [
+            car for car in listings 
+            if car.get("price") and isinstance(car.get("price"), (int, float)) and car.get("price") > 0
+        ]
+        
+        # Take top 9 valid cars
+        listings = valid_listings[:9]
+        
+        logger.info("direct_search_complete", total=len(valid_listings), showing=len(listings))
         
         # Save search and cars
         search = Search(

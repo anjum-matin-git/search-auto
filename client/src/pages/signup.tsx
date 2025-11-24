@@ -268,6 +268,12 @@ export default function Signup() {
                         type="number"
                         value={formData.priceMin}
                         onChange={(e) => setFormData({ ...formData, priceMin: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
                         className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none"
                         placeholder="30000"
                         data-testid="input-price-min"
@@ -279,6 +285,12 @@ export default function Signup() {
                         type="number"
                         value={formData.priceMax}
                         onChange={(e) => setFormData({ ...formData, priceMax: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
                         className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none"
                         placeholder="80000"
                         data-testid="input-price-max"

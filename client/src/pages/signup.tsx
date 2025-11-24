@@ -76,8 +76,20 @@ export default function Signup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Only submit if we're on step 3
+    if (step !== 3) {
+      return;
+    }
     console.log("Form submitted!", formData);
     signupMutation.mutate();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent Enter key from submitting the form on steps 1-2
+    if (e.key === "Enter" && step < 3) {
+      e.preventDefault();
+      handleNext();
+    }
   };
 
   return (
@@ -121,7 +133,7 @@ export default function Signup() {
               ))}
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
               {step === 1 && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                   <h2 className="text-xl font-semibold mb-4 text-white">Account Details</h2>

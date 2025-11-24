@@ -22,9 +22,10 @@ class CarSearchAgent:
     
     def __init__(self):
         # Initialize LLM
+        # Note: Some models (like o1-preview) don't support temperature parameter
+        # We'll use default temperature to ensure compatibility
         self.llm = ChatOpenAI(
             model=settings.openai_model,
-            temperature=0.2,  # Lower temp for more focused responses
             streaming=False
         )
         
@@ -35,7 +36,11 @@ class CarSearchAgent:
             state_modifier=self._build_system_prompt()
         )
         
-        logger.info("react_agent_initialized", tools=len(ALL_TOOLS))
+        logger.info(
+            "react_agent_initialized",
+            model=settings.openai_model,
+            tools=len(ALL_TOOLS)
+        )
     
     def _build_system_prompt(self) -> str:
         """Build comprehensive system prompt for the agent."""

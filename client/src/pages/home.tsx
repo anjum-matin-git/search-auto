@@ -166,58 +166,80 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Animated Steps */}
-              <div className="text-center max-w-2xl space-y-6">
-                <h2 className="text-3xl font-display font-bold mb-6 text-white">
-                  🤖 AI Agent Thinking...
+              {/* Sliding Text Animation */}
+              <div className="text-center max-w-2xl">
+                <h2 className="text-3xl font-display font-bold mb-8 text-white">
+                  AI Agent Thinking...
                 </h2>
                 
-                <div className="space-y-3">
-                  {[
-                    { icon: "🔍", text: "Analyzing your search query", delay: "0s" },
-                    { icon: "🚗", text: "Searching thousands of listings", delay: "0.5s" },
-                    { icon: "⚡", text: "Filtering by your preferences", delay: "1s" },
-                    { icon: "🎯", text: "Ranking best matches", delay: "1.5s" },
-                    { icon: "✨", text: "Preparing recommendations", delay: "2s" }
-                  ].map((step, i) => (
+                {/* Slider container */}
+                <div className="relative h-16 overflow-hidden">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    {[
+                      "Analyzing your search query",
+                      "Searching thousands of listings",
+                      "Filtering by your preferences",
+                      "Ranking best matches",
+                      "Preparing recommendations"
+                    ].map((text, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-full text-center text-white/80 text-lg"
+                        style={{
+                          animation: "slideText 10s ease-in-out infinite",
+                          animationDelay: `${i * 2}s`
+                        }}
+                      >
+                        {text}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Progress dots */}
+                <div className="flex gap-2 justify-center mt-6">
+                  {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-center gap-3 text-white/70 text-sm"
+                      className="w-2 h-2 rounded-full bg-white/30"
                       style={{
-                        animation: "fadeInSlide 0.5s ease-out forwards",
-                        animationDelay: step.delay,
-                        opacity: 0
+                        animation: "progressDot 10s ease-in-out infinite",
+                        animationDelay: `${i * 2}s`
                       }}
-                    >
-                      <span className="text-xl">{step.icon}</span>
-                      <span>{step.text}</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3].map((dot) => (
-                          <div
-                            key={dot}
-                            className="w-1 h-1 rounded-full bg-white/50"
-                            style={{
-                              animation: "pulse 1s ease-in-out infinite",
-                              animationDelay: `${dot * 0.2}s`
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    />
                   ))}
                 </div>
               </div>
             </div>
             
             <style>{`
-              @keyframes fadeInSlide {
-                from {
+              @keyframes slideText {
+                0%, 15% {
                   opacity: 0;
-                  transform: translateY(10px);
+                  transform: translateY(20px);
                 }
-                to {
+                20%, 35% {
                   opacity: 1;
                   transform: translateY(0);
+                }
+                40%, 100% {
+                  opacity: 0;
+                  transform: translateY(-20px);
+                }
+              }
+              
+              @keyframes progressDot {
+                0%, 15% {
+                  background-color: rgba(255, 255, 255, 0.3);
+                  transform: scale(1);
+                }
+                20%, 35% {
+                  background-color: rgba(255, 255, 255, 1);
+                  transform: scale(1.3);
+                }
+                40%, 100% {
+                  background-color: rgba(255, 255, 255, 0.3);
+                  transform: scale(1);
                 }
               }
             `}</style>

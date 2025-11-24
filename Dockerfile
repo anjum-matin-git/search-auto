@@ -9,13 +9,15 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy everything
-COPY . /app
+# Copy backend directory
+COPY backend /app/backend
 
 # Install Python dependencies
-WORKDIR /app/backend
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r /app/backend/requirements.txt
+
+# Set working directory to backend
+WORKDIR /app/backend
 
 # Expose port
 EXPOSE 8080

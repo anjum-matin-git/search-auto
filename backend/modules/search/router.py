@@ -94,31 +94,83 @@ async def search_cars_with_agent(
                 # Extract from tool calls
                 pass
         
-        # SIMPLER APPROACH: Just call Auto.dev API again with the same query
-        # This guarantees we always have cars to show
+        # Extract features from user query to search with proper criteria
         from integrations.autodev_api import AutoDevAPI
+        from integrations.openai_client import OpenAIClient
         
+        # Extract features from the query
+        openai_client = OpenAIClient()
+        extracted_features = await openai_client.extract_features(request.query)
+        
+        logger.info("extracted_query_features", query=request.query, features=extracted_features)
+        
+        # Build Auto.dev search parameters from extracted features
         autodev = AutoDevAPI()
         postal_code = user_context.get("postal_code") or "M5H2N2"
         
-        # Search for cars (fetch 15 to account for invalid prices, then take top 9)
-        listings = await autodev.search_listings({
+        search_params = {
             "postal_code": postal_code,
             "country": "CA",
             "radius_km": 150,
-            "page_size": 15
-        })
+            "page_size": 20  # Fetch more to filter by features
+        }
         
-        # Filter out cars with invalid prices (like "accepting_offers")
-        valid_listings = [
-            car for car in listings 
-            if car.get("price") and isinstance(car.get("price"), (int, float)) and car.get("price") > 0
-        ]
+        # Add extracted features to search params
+        if extracted_features.get("brand"):
+            search_params["brand"] = extracted_features["brand"]
+        if extracted_features.get("model"):
+            search_params["model"] = extracted_features["model"]
+        if extracted_features.get("type"):
+            search_params["type"] = extracted_features["type"]
+        if extracted_features.get("price_max"):
+            search_params["price_max"] = extracted_features["price_max"]
+        if extracted_features.get("price_min"):
+            search_params["price_min"] = extracted_features["price_min"]
         
-        # Take top 9 valid cars
-        listings = valid_listings[:9]
+        # Search for cars with extracted features
+        listings = await autodev.search_listings(search_params)
         
-        logger.info("direct_search_complete", total=len(valid_listings), showing=len(listings))
+        # Filter by additional features that Auto.dev API doesn't support
+        filtered_listings = []
+        for car in listings:
+            # Price validation
+            if not (car.get("price") and isinstance(car.get("price"), (int, float)) and car.get("price") > 0):
+                continue
+            
+            # Color filter (if specified)
+            if extracted_features.get("color"):
+                car_color = str(car.get("color", "")).lower()
+                query_color = str(extracted_features["color"]).lower()
+                # Basic color matching - can be improved
+                if query_color not in car_color and car_color not in query_color:
+                    # Try to check other fields that might contain color
+                    description = str(car.get("description", "") + " " + car.get("exterior_color", "")).lower()
+                    if query_color not in description:
+                        continue
+            
+            # Year filter (if specified)
+            if extracted_features.get("year_min"):
+                car_year = car.get("year", 0)
+                if car_year < extracted_features["year_min"]:
+                    continue
+            
+            if extracted_features.get("year_max"):
+                car_year = car.get("year", 0)
+                if car_year > extracted_features["year_max"]:
+                    continue
+            
+            filtered_listings.append(car)
+        
+        # Take top 9 matching cars
+        listings = filtered_listings[:9]
+        
+        logger.info(
+            "direct_search_complete",
+            query=request.query,
+            total_found=len(filtered_listings),
+            showing=len(listings),
+            features_used=extracted_features
+        )
         
         # Save search and cars
         search = Search(

@@ -22,10 +22,11 @@ class CarSearchAgent:
     
     def __init__(self):
         # Initialize LLM
-        # Note: Some models (like o1-preview) don't support temperature parameter
-        # We'll use default temperature to ensure compatibility
+        # Note: Some models (like o1-preview) only support temperature=1
+        # Explicitly set to 1 for compatibility with all models
         self.llm = ChatOpenAI(
             model=settings.openai_model,
+            temperature=1,  # Required for models like o1-preview
             streaming=False
         )
         

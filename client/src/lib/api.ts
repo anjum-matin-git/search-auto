@@ -37,6 +37,7 @@ export interface SearchResponse {
   query: string;
   count: number;
   results: CarResult[];
+  message?: string; // Agent's text response
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";

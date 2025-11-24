@@ -230,11 +230,217 @@ async def rank_cars_by_relevance(
     return ranked
 
 
+@tool
+def save_search_results(
+    user_id: int,
+    query: str,
+    results: List[Dict[str, Any]],
+    summary: str
+) -> Dict[str, Any]:
+    """
+    Save search results and post a message to the user's conversation.
+    Use this tool when you have found cars and want to present them to the user.
+    
+    Args:
+        user_id: The user's ID
+        query: The original search query
+        results: List of car dictionaries with details (brand, model, price, etc.)
+        summary: Your summary/recommendation message to show the user
+        
+    Returns:
+        Dictionary with success status and conversation message ID
+    """
+    from db.base import SessionLocal
+    from db.models import Conversation, ConversationMessage, Search, SearchResult, Car
+    from datetime import datetime
+    
+    logger.info("tool_save_search_results", user_id=user_id, query=query, results_count=len(results))
+    
+    db = SessionLocal()
+    try:
+        # Get or create conversation for user
+        conversation = db.query(Conversation).filter(
+            Conversation.user_id == user_id
+        ).first()
+        
+        if not conversation:
+            conversation = Conversation(
+                user_id=user_id,
+                title="Car Search Assistant",
+                created_at=datetime.utcnow()
+            )
+            db.add(conversation)
+            db.flush()
+        
+        # Save user's query as a message
+        user_message = ConversationMessage(
+            conversation_id=conversation.id,
+            role="user",
+            content=query,
+            created_at=datetime.utcnow()
+        )
+        db.add(user_message)
+        
+        # Save assistant's response
+        assistant_message = ConversationMessage(
+            conversation_id=conversation.id,
+            role="assistant",
+            content=summary,
+            created_at=datetime.utcnow()
+        )
+        db.add(assistant_message)
+        
+        # Save search record
+        search = Search(
+            user_id=user_id,
+            query=query,
+            filters={},
+            created_at=datetime.utcnow()
+        )
+        db.add(search)
+        db.flush()
+        
+        # Save each car result
+        saved_count = 0
+        for car_data in results[:10]:  # Limit to top 10
+            try:
+                # Check if car already exists
+                existing_car = db.query(Car).filter(
+                    Car.vin == car_data.get("vin")
+                ).first()
+                
+                if not existing_car and car_data.get("vin"):
+                    car = Car(
+                        vin=car_data.get("vin"),
+                        brand=car_data.get("brand"),
+                        model=car_data.get("model"),
+                        year=car_data.get("year"),
+                        price=car_data.get("price"),
+                        location=car_data.get("location"),
+                        dealer=car_data.get("dealer"),
+                        images=car_data.get("images", [])[:3],  # First 3 images
+                        created_at=datetime.utcnow()
+                    )
+                    db.add(car)
+                    db.flush()
+                    car_id = car.id
+                else:
+                    car_id = existing_car.id if existing_car else None
+                
+                if car_id:
+                    # Link car to search
+                    search_result = SearchResult(
+                        search_id=search.id,
+                        car_id=car_id,
+                        rank=saved_count + 1,
+                        relevance_score=car_data.get("relevance_score", 0.0)
+                    )
+                    db.add(search_result)
+                    saved_count += 1
+            except Exception as e:
+                logger.warning("failed_to_save_car", error=str(e), vin=car_data.get("vin"))
+                continue
+        
+        db.commit()
+        
+        logger.info(
+            "search_results_saved",
+            user_id=user_id,
+            search_id=search.id,
+            cars_saved=saved_count,
+            message_id=assistant_message.id
+        )
+        
+        return {
+            "success": True,
+            "search_id": search.id,
+            "cars_saved": saved_count,
+            "message_id": assistant_message.id,
+            "conversation_id": conversation.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("save_search_error", error=str(e), user_id=user_id)
+        return {
+            "success": False,
+            "error": str(e)
+        }
+    finally:
+        db.close()
+
+
+@tool
+def post_message_to_user(user_id: int, message: str) -> Dict[str, Any]:
+    """
+    Post a message to the user's conversation.
+    Use this when you want to communicate with the user (e.g., no results found, need clarification).
+    
+    Args:
+        user_id: The user's ID
+        message: Your message to the user
+        
+    Returns:
+        Dictionary with success status and message ID
+    """
+    from db.base import SessionLocal
+    from db.models import Conversation, ConversationMessage
+    from datetime import datetime
+    
+    logger.info("tool_post_message", user_id=user_id, message_length=len(message))
+    
+    db = SessionLocal()
+    try:
+        # Get or create conversation
+        conversation = db.query(Conversation).filter(
+            Conversation.user_id == user_id
+        ).first()
+        
+        if not conversation:
+            conversation = Conversation(
+                user_id=user_id,
+                title="Car Search Assistant",
+                created_at=datetime.utcnow()
+            )
+            db.add(conversation)
+            db.flush()
+        
+        # Save assistant's message
+        assistant_message = ConversationMessage(
+            conversation_id=conversation.id,
+            role="assistant",
+            content=message,
+            created_at=datetime.utcnow()
+        )
+        db.add(assistant_message)
+        db.commit()
+        
+        logger.info("message_posted", message_id=assistant_message.id, user_id=user_id)
+        
+        return {
+            "success": True,
+            "message_id": assistant_message.id,
+            "conversation_id": conversation.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("post_message_error", error=str(e), user_id=user_id)
+        return {
+            "success": False,
+            "error": str(e)
+        }
+    finally:
+        db.close()
+
+
 # Export all tools
 ALL_TOOLS = [
     extract_car_features,
     search_car_listings,
     filter_cars_by_criteria,
-    rank_cars_by_relevance
+    rank_cars_by_relevance,
+    save_search_results,
+    post_message_to_user
 ]
 

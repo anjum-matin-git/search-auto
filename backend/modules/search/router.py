@@ -79,6 +79,7 @@ async def search_cars_with_agent(
 def _build_user_context(user_id: int, user: User, db: Session) -> dict:
     """Build context about the user for personalization."""
     context = {
+        "user_id": user_id,  # Add user_id for tools to use
         "location": user.location,
         "postal_code": user.postal_code,
         "preferences": {}

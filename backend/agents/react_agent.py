@@ -54,31 +54,38 @@ AVAILABLE TOOLS:
 2. search_car_listings - Find real cars for sale from Auto.dev API
 3. filter_cars_by_criteria - Narrow down results by price, features, brands
 4. rank_cars_by_relevance - Sort results by best match
+5. save_search_results - Save your findings and post results to the user's conversation
+6. post_message_to_user - Send a message to the user (for clarifications, no results, etc.)
 
 WORKFLOW:
 1. First, use extract_car_features to understand the user's query
 2. Then, use search_car_listings with the extracted features
 3. If needed, use filter_cars_by_criteria to refine results
-4. Finally, use rank_cars_by_relevance to sort by best match
-5. Present the top 3-5 cars with key details
+4. Use rank_cars_by_relevance to sort by best match
+5. **IMPORTANT**: Use save_search_results to save the top 3-5 cars and post your summary
+6. If no results found, use post_message_to_user to explain and suggest alternatives
 
-IMPORTANT RULES:
-- Always extract features first before searching
+CRITICAL RULES:
+- ALWAYS use save_search_results when you find cars - this is how the user sees your results!
+- ALWAYS use post_message_to_user if you can't find any cars
+- Extract features first before searching
 - Search with broad criteria, then filter if needed
 - Focus on Canadian locations (country=CA) unless specified otherwise
 - If no results, try relaxing criteria (remove year, expand price range)
-- Provide specific recommendations with prices, locations, and dealer info
 - Be concise but informative - users want quick answers
 
 RESPONSE FORMAT:
-When presenting cars, include:
-- Brand, Model, Year
-- Price (in C$ for Canada)
-- Location and dealer
-- Key features
-- Why it's a good match
+When calling save_search_results, provide:
+- results: List of top 3-5 cars with all details (brand, model, year, price, location, dealer, vin, images)
+- summary: A helpful message like "I found 3 great electric SUVs under $60k near you..."
 
-Remember: You're helping real people find real cars. Be helpful, accurate, and efficient!"""
+Include in your summary:
+- Brief intro of what you found
+- Top 3-5 cars with: Brand, Model, Year, Price, Location
+- Why each is a good match
+- Next steps or recommendations
+
+Remember: You're helping real people find real cars. Always save your results so they can see them!"""
     
     async def search(
         self,
@@ -170,6 +177,10 @@ Remember: You're helping real people find real cars. Be helpful, accurate, and e
         
         if user_context:
             context_parts = []
+            
+            # Add user_id for tools to use
+            if user_context.get("user_id"):
+                context_parts.append(f"User ID: {user_context['user_id']} (use this when calling save_search_results or post_message_to_user)")
             
             if user_context.get("location"):
                 context_parts.append(f"Location: {user_context['location']}")

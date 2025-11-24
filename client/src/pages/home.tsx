@@ -46,8 +46,20 @@ export default function Home() {
       setHasSearched(true);
       setActiveQuery(data.query);
       setSearchCount(prev => prev + 1);
-      toast.success(`Found ${data.count} matching vehicles!`);
-      if (!autoOpenedAssistant) {
+      
+      // Show success message based on whether we have results or agent message
+      if (data.message) {
+        // Agent returned a text response (new ReAct agent)
+        toast.success("Search complete! Check the assistant for results.");
+      } else if (data.count > 0) {
+        // Traditional search with structured results
+        toast.success(`Found ${data.count} matching vehicles!`);
+      } else {
+        toast.info("Search complete. No exact matches found.");
+      }
+      
+      // Always open assistant to show agent's response
+      if (!autoOpenedAssistant || data.message) {
         setAutoOpenedAssistant(true);
         setAssistantOpen(true);
       }

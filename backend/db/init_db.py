@@ -16,9 +16,13 @@ def init_database():
     logger.info("database_init_start")
     
     with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        conn.commit()
-        logger.info("pgvector_extension_enabled")
+        try:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
+            logger.info("pgvector_extension_enabled")
+        except Exception as exc:
+            conn.rollback()
+            logger.warning("pgvector_extension_unavailable", error=str(exc))
     
     Base.metadata.create_all(bind=engine)
     logger.info("database_tables_created")

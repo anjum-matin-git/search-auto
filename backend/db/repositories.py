@@ -4,9 +4,17 @@ Separates database operations from business logic.
 """
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 
-from .models import User, Car, Search, SearchResult, UserPreference
+from .models import (
+    User,
+    Car,
+    Search,
+    SearchResult,
+    UserPreference,
+    Conversation,
+    ConversationMessage,
+)
 from core.exceptions import NotFoundException
 
 
@@ -44,12 +52,43 @@ class UserRepository:
         """Get user by email."""
         return self.db.query(User).filter(User.email == email).first()
     
-    def update_preferences(self, user_id: int, location: str, postal_code: str, initial_preferences: dict) -> User:
+    def update_preferences(
+        self,
+        user_id: int,
+        location: Optional[str],
+        postal_code: Optional[str],
+        initial_preferences: Optional[dict]
+    ) -> User:
         """Update user location and initial preferences."""
         user = self.get_by_id(user_id)
-        user.location = location
-        user.postal_code = postal_code
-        user.initial_preferences = initial_preferences
+        if location is not None:
+            user.location = location
+        if postal_code is not None:
+            user.postal_code = postal_code
+        if initial_preferences is not None:
+            user.initial_preferences = initial_preferences
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def update_user(
+        self,
+        user_id: int,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        location: Optional[str] = None,
+        postal_code: Optional[str] = None,
+    ) -> User:
+        """Update basic user profile fields."""
+        user = self.get_by_id(user_id)
+        if username is not None:
+            user.username = username
+        if email is not None:
+            user.email = email
+        if location is not None:
+            user.location = location
+        if postal_code is not None:
+            user.postal_code = postal_code
         self.db.commit()
         self.db.refresh(user)
         return user
@@ -229,3 +268,44 @@ class UserPreferenceRepository:
         return self.db.query(UserPreference).filter(
             UserPreference.user_id == user_id
         ).first()
+
+
+class ConversationRepository:
+    """Repository for user conversation management."""
+    
+    def __init__(self, db: Session):
+        self.db = db
+    
+    def get_or_create(self, user_id: int) -> Conversation:
+        """Get the user's conversation or create one."""
+        conversation = self.db.query(Conversation).filter(Conversation.user_id == user_id).first()
+        if conversation:
+            return conversation
+        
+        conversation = Conversation(user_id=user_id, title="Car Buying Assistant")
+        self.db.add(conversation)
+        self.db.commit()
+        self.db.refresh(conversation)
+        return conversation
+    
+    def list_messages(self, conversation_id: int, limit: int = 50) -> List[ConversationMessage]:
+        """Return the latest conversation messages."""
+        return (
+            self.db.query(ConversationMessage)
+            .filter(ConversationMessage.conversation_id == conversation_id)
+            .order_by(ConversationMessage.created_at.asc())
+            .limit(limit)
+            .all()
+        )
+    
+    def add_message(self, conversation_id: int, role: str, content: str) -> ConversationMessage:
+        """Persist a conversation message."""
+        message = ConversationMessage(
+            conversation_id=conversation_id,
+            role=role,
+            content=content,
+        )
+        self.db.add(message)
+        self.db.commit()
+        self.db.refresh(message)
+        return message

@@ -20,6 +20,9 @@ class SearchState(TypedDict, total=False):
     # Input
     user_id: Optional[int]
     query: str
+    preferred_location: Optional[str]
+    preferred_postal_code: Optional[str]
+    preferred_country: Optional[str]
     
     # Step 1: Analyze Query
     extracted_features: Dict[str, Any]

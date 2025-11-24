@@ -80,8 +80,8 @@ class OpenAIClient:
                 "role": "system",
                 "content": """You are a car search assistant. Extract structured car features from user queries.
 Return JSON with these fields (all optional):
-- brand: string (e.g., "Toyota", "BMW")
-- model: string (e.g., "Camry", "3 Series")
+- brand: string (e.g., "Toyota", "BMW", "Land Rover")
+- model: string (e.g., "Camry", "3 Series", "Range Rover")
 - type: string (e.g., "SUV", "Sedan", "Truck")
 - year_min: number
 - year_max: number
@@ -90,6 +90,8 @@ Return JSON with these fields (all optional):
 - mileage_max: number
 - features: array of strings (e.g., ["leather seats", "sunroof"])
 - location: string
+
+IMPORTANT: "Range Rover" is a model by the brand "Land Rover". If the user mentions "Range Rover", set brand="Land Rover" and model="Range Rover".
 
 Only include fields mentioned in the query. Be flexible with synonyms."""
             },

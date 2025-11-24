@@ -7,7 +7,9 @@ import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Pricing from "@/pages/pricing";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
+import { BackgroundCanvas } from "@/components/background";
 
 function Router() {
   return (
@@ -16,6 +18,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -25,8 +28,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <BackgroundCanvas />
+        <div className="relative z-10">
+          <Toaster />
+          <Router />
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -34,8 +34,8 @@ class CarResponse(BaseModel):
     source: Optional[str] = None
     sourceUrl: Optional[str] = None
     description: Optional[str] = None
-    features: List[str] = []
-    images: List[str] = []
+    features: List[str] = Field(default_factory=list)
+    images: List[str] = Field(default_factory=list)
     specs: Optional[SpecsResponse] = None
     match: Optional[int] = None  # Percentage 0-100
     vin: Optional[str] = None

@@ -4,6 +4,13 @@
 
 SearchAuto is an AI-powered car search platform that helps users find their perfect vehicle through natural language queries. The application uses LangChain with LangGraph for agentic workflows, scrapes multiple car listing websites (AutoTrader, CarGurus), and leverages OpenAI embeddings for semantic search and matching. Built with a modern full-stack architecture featuring React/Vite on the frontend and Express with PostgreSQL on the backend.
 
+## November 2025 updates
+
+- **ChromaDB Vector Store** – Embeddings are persisted in `./chroma_db` via a managed Chroma client, replacing pgvector while keeping SQL tables lightweight.
+- **Strict Auth + Credits** – `/api/search` now requires a JWT; every new user starts with 3 free credits and must upgrade via Stripe for more.
+- **Preference Persistence** – User records keep `initial_preferences`, while `user_preferences` captures normalized brand/type/price history to personalize results.
+- **Infra ready-to-run** – Added `env.example`, documented API keys, and locked backend dependencies for OpenAI, Auto.dev, Apify, Stripe, and Chroma.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

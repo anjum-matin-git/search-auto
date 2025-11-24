@@ -97,10 +97,11 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
+    <div className="min-h-screen relative text-white">
+      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-[#050014]/85 to-[#050014]/95" />
       <Navbar />
       
-      <main className="pt-32 pb-20 px-6">
+      <main className="relative z-10 pt-32 pb-20 px-6">
         <div className="container mx-auto max-w-6xl">
           {/* Header */}
           <motion.div
@@ -108,14 +109,14 @@ export default function Pricing() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black text-white text-sm font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-sm font-semibold mb-6">
               <Sparkles className="w-4 h-4" />
               Simple, Transparent Pricing
             </div>
-            <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 text-gray-900">
+            <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 text-white">
               Find your dream car,<br />on your budget
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">
               Choose the plan that fits your car search needs. Upgrade, downgrade, or cancel anytime.
             </p>
           </motion.div>
@@ -138,23 +139,23 @@ export default function Pricing() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -8, boxShadow: plan.popular ? "0 25px 50px rgba(0,0,0,0.25)" : "0 20px 40px rgba(0,0,0,0.1)" }}
-                  className={`relative rounded-3xl p-8 transition-all duration-300 ${
+                  whileHover={{ y: -8, boxShadow: plan.popular ? "0 25px 50px rgba(0,0,0,0.35)" : "0 25px 50px rgba(0,0,0,0.45)" }}
+                  className={`relative rounded-3xl p-8 transition-all duration-300 border ${
                     plan.popular
-                      ? "bg-gradient-to-br from-gray-900 to-black text-white shadow-2xl shadow-black/20 border-2 border-black"
-                      : "bg-white border-2 border-gray-200 shadow-lg hover:border-gray-300"
+                      ? "bg-gradient-to-br from-white to-gray-200 text-black border-transparent shadow-2xl"
+                      : "bg-white/5 border-white/15 text-white shadow-[0_25px_70px_rgba(0,0,0,0.45)]"
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-white text-black text-sm font-semibold rounded-full">
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-black text-white text-sm font-semibold rounded-full shadow-lg">
                       Most Popular
                     </div>
                   )}
 
                   <div className="mb-6">
-                    <Icon className={`w-10 h-10 mb-4 ${plan.popular ? "text-white" : "text-black"}`} />
+                    <Icon className={`w-10 h-10 mb-4 ${plan.popular ? "text-black" : "text-white"}`} />
                     <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                    <p className={plan.popular ? "text-gray-300" : "text-gray-600"}>
+                    <p className={plan.popular ? "text-black/70" : "text-white/70"}>
                       {plan.description}
                     </p>
                   </div>
@@ -164,23 +165,23 @@ export default function Pricing() {
                       <>
                         <div className="flex items-baseline gap-2">
                           <span className="text-5xl font-bold">${plan.price}</span>
-                          <span className={plan.popular ? "text-gray-400" : "text-gray-500"}>
+                          <span className={plan.popular ? "text-black/60" : "text-white/60"}>
                             /month
                           </span>
                         </div>
                         {plan.credits && (
-                          <p className={`mt-2 text-sm ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>
+                          <p className={`mt-2 text-sm ${plan.popular ? "text-black/60" : "text-white/60"}`}>
                             {plan.credits} search credits
                           </p>
                         )}
                         {!plan.credits && plan.price && (
-                          <p className={`mt-2 text-sm ${plan.popular ? "text-gray-400" : "text-gray-500"}`}>
+                          <p className={`mt-2 text-sm ${plan.popular ? "text-black/60" : "text-white/60"}`}>
                             Unlimited searches
                           </p>
                         )}
                       </>
                     ) : (
-                      <div className="text-3xl font-bold">Custom</div>
+                      <div className="text-3xl font-bold">{plan.name === "Premium" ? "Bespoke" : "Custom"}</div>
                     )}
                   </div>
 
@@ -189,10 +190,10 @@ export default function Pricing() {
                     disabled={loading === plan.id}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 shadow-lg hover:shadow-xl ${
+                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 shadow-lg hover:shadow-xl pressable ${
                       plan.popular
-                        ? "bg-white text-black hover:bg-gray-50"
-                        : "bg-gradient-to-r from-gray-900 to-black text-white"
+                        ? "bg-black text-white"
+                        : "bg-white text-black"
                     }`}
                     data-testid={`plan-${plan.name.toLowerCase()}`}
                   >
@@ -210,9 +211,9 @@ export default function Pricing() {
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                          plan.popular ? "text-white" : "text-black"
+                          plan.popular ? "text-black" : "text-white"
                         }`} />
-                        <span className={plan.popular ? "text-gray-200" : "text-gray-600"}>
+                        <span className={plan.popular ? "text-black/70" : "text-white/70"}>
                           {feature}
                         </span>
                       </li>
@@ -226,7 +227,7 @@ export default function Pricing() {
 
           {/* FAQ */}
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-display font-bold text-center mb-12 text-gray-900">
+            <h2 className="text-3xl font-display font-bold text-center mb-12 text-white">
               Frequently Asked Questions
             </h2>
             <div className="space-y-6">
@@ -244,9 +245,9 @@ export default function Pricing() {
                   a: "Premium includes a dedicated account manager who helps you find, negotiate, and purchase your perfect car. Contact our sales team for custom pricing."
                 }
               ].map((faq) => (
-                <div key={faq.q} className="bg-white rounded-2xl p-6 border border-gray-200">
-                  <h3 className="font-semibold text-lg mb-2 text-gray-900">{faq.q}</h3>
-                  <p className="text-gray-600">{faq.a}</p>
+                <div key={faq.q} className="bg-white/5 rounded-2xl p-6 border border-white/15 backdrop-blur-xl">
+                  <h3 className="font-semibold text-lg mb-2 text-white">{faq.q}</h3>
+                  <p className="text-white/70">{faq.a}</p>
                 </div>
               ))}
             </div>

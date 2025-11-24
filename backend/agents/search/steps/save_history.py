@@ -1,12 +1,12 @@
 """
 Step 5: Save search history and update user preferences.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from agents.search.state import SearchState
 from db.base import SessionLocal
 from db.models import Search, SearchResult
-from db.repositories import SearchRepository, SearchResultRepository, UserPreferenceRepository
+from db.repositories import UserPreferenceRepository
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -32,8 +32,9 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         return {"search_id": None}
     
     query = state.get("query")
-    features = state.get("features", {})
+    features = state.get("extracted_features", {}) or {}
     matched_cars = state.get("matched_cars", [])
+    match_scores: List[float] = state.get("match_scores", []) or []
     
     if not query or not matched_cars:
         logger.info("step_save_history_complete", search_id=None, note="no_query_or_cars")
@@ -41,9 +42,6 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
     
     db = SessionLocal()
     try:
-        search_repo = SearchRepository(db)
-        result_repo = SearchResultRepository(db)
-        
         # Create search record WITHOUT committing (atomic transaction)
         search = Search(
             user_id=user_id,
@@ -58,7 +56,8 @@ async def save_history(state: SearchState) -> Dict[str, Any]:
         results_data = []
         for rank, car in enumerate(matched_cars, start=1):
             car_id = car.get("id")
-            match_score = car.get("score", 0.0)
+            score_value = match_scores[rank - 1] if rank - 1 < len(match_scores) else None
+            match_score = float(score_value) if score_value is not None else 0.0
             
             if car_id:
                 results_data.append({
@@ -109,8 +108,8 @@ def _update_user_preferences(
     
     existing_pref = pref_repo.get_by_user(user_id)
     
-    preferred_brands = set(existing_pref.preferred_brands or []) if existing_pref else set()
-    preferred_types = set(existing_pref.preferred_types or []) if existing_pref else set()
+    preferred_brands = set((existing_pref.preferred_brands or []) if existing_pref else [])
+    preferred_types = set((existing_pref.preferred_types or []) if existing_pref else [])
     
     if features.get("brand"):
         preferred_brands.add(features["brand"])
@@ -123,10 +122,14 @@ def _update_user_preferences(
         if car.get("type"):
             preferred_types.add(car["type"])
     
+    price_min = features.get("price_min")
+    price_max = features.get("price_max")
+    
     pref_repo.create_or_update(
         user_id=user_id,
+        preferences=features,
         preferred_brands=list(preferred_brands),
         preferred_types=list(preferred_types),
-        price_range_min=features.get("price_min"),
-        price_range_max=features.get("price_max"),
+        price_range_min=price_min,
+        price_range_max=price_max,
     )

@@ -14,6 +14,23 @@ export interface User {
   } | null;
   createdAt?: string;
   access_token?: string;  // JWT token
+  creditsRemaining?: number;
+  unlimitedSearches?: boolean;
+}
+
+function normalizeUserResponse(data: any, base?: Partial<User>): User {
+  return {
+    id: data?.id ?? base?.id ?? 0,
+    username: data?.username ?? base?.username ?? "",
+    email: data?.email ?? base?.email ?? "",
+    location: data?.location ?? base?.location ?? null,
+    postalCode: data?.postal_code ?? data?.postalCode ?? base?.postalCode ?? null,
+    initialPreferences: data?.initial_preferences ?? data?.initialPreferences ?? base?.initialPreferences ?? null,
+    createdAt: data?.created_at ?? data?.createdAt ?? base?.createdAt,
+    access_token: data?.access_token ?? base?.access_token,
+    creditsRemaining: data?.credits_remaining ?? base?.creditsRemaining,
+    unlimitedSearches: data?.unlimited_searches ?? base?.unlimitedSearches,
+  };
 }
 
 export async function signup(data: {
@@ -51,7 +68,10 @@ export async function signup(data: {
 
     const result = await response.json();
     console.log("Success response:", result);
-    return result;
+    return {
+      success: result.success,
+      user: normalizeUserResponse(result.user),
+    };
   } catch (err) {
     console.error("Fetch error:", err);
     throw err;
@@ -72,7 +92,11 @@ export async function login(email: string, password: string): Promise<{ success:
     throw new Error(error.error || "Login failed");
   }
 
-  return response.json();
+  const result = await response.json();
+  return {
+    success: result.success,
+    user: normalizeUserResponse(result.user),
+  };
 }
 
 export function getStoredUser(): User | null {
@@ -91,4 +115,92 @@ export function storeUser(user: User): void {
 
 export function clearUser(): void {
   localStorage.removeItem("user");
+}
+
+function buildAuthHeaders() {
+  const stored = getStoredUser();
+  if (!stored?.access_token) {
+    throw new Error("Not authenticated");
+  }
+  return {
+    Authorization: `Bearer ${stored.access_token}`,
+    "Content-Type": "application/json",
+  };
+}
+
+export async function fetchProfile(): Promise<User> {
+  const headers = buildAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: "GET",
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load profile");
+  }
+  const stored = getStoredUser() ?? undefined;
+  const raw = await response.json();
+  return normalizeUserResponse(raw, stored ?? undefined);
+}
+
+export async function updateProfile(data: {
+  username?: string;
+  email?: string;
+  location?: string;
+  postalCode?: string;
+}): Promise<User> {
+  const headers = buildAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to update profile");
+  }
+  const stored = getStoredUser() ?? undefined;
+  const raw = await response.json();
+  return normalizeUserResponse(raw, stored ?? undefined);
+}
+
+export async function updateUserPreferences(data: {
+  userId: number;
+  location?: string;
+  postalCode?: string;
+  initialPreferences: Record<string, unknown>;
+}): Promise<User> {
+  const headers = buildAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/auth/preferences`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      user_id: data.userId,
+      location: data.location,
+      postalCode: data.postalCode,
+      initialPreferences: data.initialPreferences,
+    }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to update preferences");
+  }
+  const stored = getStoredUser() ?? undefined;
+  const raw = await response.json();
+  return normalizeUserResponse(raw, stored ?? undefined);
+}
+
+export async function changePasswordApi(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  const headers = buildAuthHeaders();
+  const response = await fetch(`${API_BASE_URL}/api/auth/password`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to change password");
+  }
 }

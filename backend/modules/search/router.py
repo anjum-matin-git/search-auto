@@ -3,12 +3,12 @@ FastAPI router for search endpoints.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Tuple
 
 from db.base import get_db
 from db.models import User
 from db.repositories import SearchRepository, UserRepository
-from core.jwt_auth import get_optional_user_jwt, get_current_user_jwt
+from core.jwt_auth import get_current_user_jwt
 from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
 from agents.search.workflow import run_search
 from services.credits_service import CreditsService
@@ -20,49 +20,65 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
+def _derive_location_context(user: User) -> Tuple[str, Optional[str], str]:
+    """Determine best-effort location details for a user."""
+    location = (user.location or "").strip()
+    postal = (user.postal_code or "").strip()
+    country = "CA"  # default Canada focus
+    
+    if location:
+        if "canada" not in location.lower():
+            location = f"{location}, Canada"
+    elif postal:
+        location = f"{postal}, Canada"
+    else:
+        location = "Canada"
+    
+    return location, postal or None, country
+
+
 @router.post("", response_model=SearchResponse)
 async def search_cars(
     request: SearchRequest,
-    current_user: Optional[User] = Depends(get_optional_user_jwt),
+    current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
     """
     Search for cars using natural language query.
-    Authenticated users: Checks credits/quota and deducts after search.
-    Unauthenticated users: Limited free search without persistence.
+    Requires authentication so we can enforce credit usage and personalize the experience.
     """
     credits_service = CreditsService(db)
-    user_id: Optional[int] = None
+    user_id = current_user.id if isinstance(current_user.id, int) else int(current_user.id)
     
-    # For authenticated users, check and deduct credits atomically
-    if current_user:
-        # Cast SQLAlchemy Column to int safely
-        user_id = current_user.id if isinstance(current_user.id, int) else int(current_user.id)
-        
-        # Check quota before search
-        has_quota = credits_service.check_quota(user_id)
-        if not has_quota:
-            logger.warning("search_quota_exceeded", user_id=user_id)
-            raise AppException("No credits remaining. Please upgrade your plan.", 402)
-        
-        # Deduct credit BEFORE search (prevents race conditions)
-        # If search fails, we could refund, but simpler to deduct upfront
-        try:
-            credits_service.deduct_credit(user_id)
-            logger.info("credit_deducted_before_search", user_id=user_id)
-            # Commit the transaction to release the user row lock
-            db.commit()
-        except AppException as e:
-            # Re-raise 402 errors (no credits)
-            if e.status_code == 402:
-                raise
-            # For other errors, log and continue
-            logger.error("credit_deduction_failed", user_id=user_id, error=str(e))
+    # Check quota before search
+    has_quota = credits_service.check_quota(user_id)
+    if not has_quota:
+        logger.warning("search_quota_exceeded", user_id=user_id)
+        raise AppException("No credits remaining. Please upgrade your plan.", 402)
+    
+    # Deduct credit BEFORE search (prevents race conditions)
+    # If search fails, we could refund, but simpler to deduct upfront
+    try:
+        credits_service.deduct_credit(user_id)
+        logger.info("credit_deducted_before_search", user_id=user_id)
+        # Commit the transaction to release the user row lock
+        db.commit()
+    except AppException as e:
+        # Re-raise 402 errors (no credits)
+        if e.status_code == 402:
+            raise
+        # For other errors, log and continue
+        logger.error("credit_deduction_failed", user_id=user_id, error=str(e))
+    
+    location_label, postal_code, country = _derive_location_context(current_user)
     
     # Run search workflow
     final_state = await run_search(
         query=request.query,
-        user_id=user_id
+        user_id=user_id,
+        location=location_label,
+        postal_code=postal_code,
+        country=country
     )
     
     # Transform car data to match frontend expectations
@@ -73,14 +89,14 @@ async def search_cars(
     ):
         # Format price - handle both numeric and pre-formatted strings from Auto.dev
         price_value = car.get("price")
+        currency_prefix = "C$" if car.get("display_currency") == "CAD" else "$"
         if isinstance(price_value, str):
-            # Already formatted from Auto.dev (e.g., "$28,706")
-            price_str = price_value
+            price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
             # Extract numeric value
             price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value != "New" else 0
         elif isinstance(price_value, (int, float)):
             price_numeric = int(price_value)
-            price_str = f"${price_numeric:,}"
+            price_str = f"{currency_prefix}{price_numeric:,}"
         else:
             price_numeric = 0
             price_str = "Contact for price"
@@ -115,6 +131,7 @@ async def search_cars(
         # Convert match score to percentage (0-100)
         match_percentage = int(abs(score) * 100) if score is not None else 95
         
+        image_urls = [img for img in (car.get("images", []) or []) if isinstance(img, str) and img]
         car_response = CarResponse(
             id=car.get("id"),
             brand=car.get("brand", "Unknown"),
@@ -130,7 +147,7 @@ async def search_cars(
             sourceUrl=car.get("sourceUrl") or car.get("url"),
             description=car.get("description"),
             features=car.get("features", []),
-            images=car.get("images", []),
+            images=image_urls,
             specs=specs,
             match=match_percentage,
             vin=car.get("vin"),
@@ -179,15 +196,16 @@ async def get_personalized_cars(
             
             # Format price
             price_value = car_data.get("price")
+            currency_prefix = "C$" if car_data.get("display_currency") == "CAD" else "$"
             if isinstance(price_value, str):
-                price_str = price_value
+                price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
                 try:
                     price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value not in ["New", "accepting_offers"] else 0
                 except:
                     price_numeric = 0
             elif isinstance(price_value, (int, float)):
                 price_numeric = int(price_value)
-                price_str = f"${price_numeric:,}"
+                price_str = f"{currency_prefix}{price_numeric:,}"
             else:
                 price_numeric = 0
                 price_str = "Contact for price"
@@ -219,6 +237,7 @@ async def get_personalized_cars(
             
             match_percentage = int(abs(match_score) * 100) if match_score is not None else 95
             
+            image_urls = [img for img in (car_data.get("images", []) or []) if isinstance(img, str) and img]
             car_response = CarResponse(
                 id=car_model.id,
                 brand=car_data.get("brand", "Unknown"),
@@ -234,7 +253,7 @@ async def get_personalized_cars(
                 sourceUrl=car_data.get("url"),
                 description=car_data.get("description"),
                 features=car_data.get("features", []),
-                images=car_data.get("images", []),
+                images=image_urls,
                 specs=specs,
                 match=match_percentage,
                 vin=car_data.get("vin"),
@@ -254,14 +273,16 @@ async def get_personalized_cars(
     
     else:
         # No search history - use location to find nearby cars
-        # Fallback chain: location -> postal_code -> default
-        user_location = current_user.location or current_user.postal_code or "California"
+        user_location, postal_code, country = _derive_location_context(current_user)
         logger.info("personalized_from_location", user_id=user_id, location=user_location)
         
         # Search for popular cars near user's location
         autodev_api = AutoDevAPI()
         cars = await autodev_api.search_listings({
             "location": user_location,
+            "postal_code": postal_code,
+            "country": country,
+            "radius_km": 150,
             "price_max": 50000  # Reasonable default
         })
         
@@ -279,15 +300,16 @@ async def get_personalized_cars(
         for car_data in cars[:9]:  # Limit to 9
             # Format price
             price_value = car_data.get("price")
+            currency_prefix = "C$" if car_data.get("display_currency") == "CAD" else "$"
             if isinstance(price_value, str):
-                price_str = price_value
+                price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
                 try:
                     price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value not in ["New", "accepting_offers"] else 0
                 except:
                     price_numeric = 0
             elif isinstance(price_value, (int, float)):
                 price_numeric = int(price_value)
-                price_str = f"${price_numeric:,}"
+                price_str = f"{currency_prefix}{price_numeric:,}"
             else:
                 price_numeric = 0
                 price_str = "Contact for price"
@@ -316,6 +338,7 @@ async def get_personalized_cars(
                     "mpg": f"{car_data.get('mpg')} mpg" if car_data.get('mpg') else None,
                 }
             
+            image_urls = [img for img in (car_data.get("images", []) or []) if isinstance(img, str) and img]
             car_response = CarResponse(
                 id=0,  # No ID for non-stored cars
                 brand=car_data.get("brand", "Unknown"),
@@ -331,7 +354,7 @@ async def get_personalized_cars(
                 sourceUrl=car_data.get("url"),
                 description=car_data.get("description"),
                 features=car_data.get("features", []),
-                images=car_data.get("images", []),
+                images=image_urls,
                 specs=specs,
                 match=85,  # Default match for location-based results
                 vin=car_data.get("vin"),

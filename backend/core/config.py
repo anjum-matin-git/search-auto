@@ -2,6 +2,8 @@
 Application configuration using Pydantic Settings.
 Follows 12-factor app principles with environment-based configuration.
 """
+from typing import Optional
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,6 +34,21 @@ class Settings(BaseSettings):
     # Search
     max_search_results: int = 10
     scraping_timeout_seconds: int = 30
+
+    # External integrations
+    apify_api_key: Optional[str] = Field(default=None, alias="APIFY_API_KEY")
+    autotrader_ca_actor_id: str = Field(
+        default="fayoussef/autotrader-canada",
+        alias="AUTOTRADER_CA_ACTOR_ID",
+    )
+    autotrader_ca_max_depth: int = Field(
+        default=3,
+        alias="AUTOTRADER_CA_MAX_DEPTH",
+    )
+    autotrader_ca_max_concurrency: int = Field(
+        default=10,
+        alias="AUTOTRADER_CA_MAX_CONCURRENCY",
+    )
     
     model_config = SettingsConfigDict(
         env_file=".env",

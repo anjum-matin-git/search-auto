@@ -29,7 +29,27 @@ class AuthService:
         """Verify a password against its hash."""
         return pwd_context.verify(plain_password, hashed_password)
     
-    def signup(self, username: str, email: str, password: str) -> dict:
+    def _serialize_user(self, user) -> dict:
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "location": user.location,
+            "postal_code": user.postal_code,
+            "initial_preferences": user.initial_preferences,
+            "credits_remaining": user.credits_remaining,
+            "unlimited_searches": user.unlimited_searches,
+        }
+    
+    def signup(
+        self,
+        username: str,
+        email: str,
+        password: str,
+        location: Optional[str] = None,
+        postal_code: Optional[str] = None,
+        initial_preferences: Optional[dict] = None,
+    ) -> dict:
         """
         Create a new user account.
         
@@ -55,16 +75,15 @@ class AuthService:
         user = self.user_repo.create(
             username=username,
             email=email,
-            password=hashed_password
+            password=hashed_password,
+            location=location,
+            postal_code=postal_code,
+            initial_preferences=initial_preferences,
         )
         
         logger.info("user_created", user_id=user.id, username=username)
         
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-        }
+        return self._serialize_user(user)
     
     def login(self, username: str, password: str) -> dict:
         """
@@ -88,20 +107,13 @@ class AuthService:
         
         logger.info("login_success", user_id=user.id, username=username)
         
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "location": user.location,
-            "postal_code": user.postal_code,
-            "credits_remaining": user.credits_remaining,
-        }
+        return self._serialize_user(user)
     
     def update_preferences(
         self,
         user_id: int,
-        location: str,
-        postal_code: str,
+        location: Optional[str],
+        postal_code: Optional[str],
         initial_preferences: dict
     ) -> dict:
         """
@@ -125,11 +137,55 @@ class AuthService:
         
         logger.info("preferences_updated", user_id=user_id)
         
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "location": user.location,
-            "postal_code": user.postal_code,
-            "initial_preferences": user.initial_preferences,
-        }
+        return self._serialize_user(user)
+
+    def update_profile(
+        self,
+        user_id: int,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        location: Optional[str] = None,
+        postal_code: Optional[str] = None,
+    ) -> dict:
+        """Update basic profile details."""
+        user = self.user_repo.get_by_id(user_id)
+        
+        if username and username != user.username:
+            existing_username = self.user_repo.get_by_username(username)
+            if existing_username and existing_username.id != user_id:
+                raise ValidationException("Username already exists")
+            user.username = username
+        
+        if email and email != user.email:
+            existing_email = self.user_repo.get_by_email(email)
+            if existing_email and existing_email.id != user_id:
+                raise ValidationException("Email already exists")
+            user.email = email
+        
+        if location is not None:
+            user.location = location
+        if postal_code is not None:
+            user.postal_code = postal_code
+        
+        self.db.commit()
+        self.db.refresh(user)
+        
+        logger.info("profile_updated", user_id=user_id)
+        
+        return self._serialize_user(user)
+
+    def change_password(
+        self,
+        user_id: int,
+        current_password: str,
+        new_password: str
+    ) -> None:
+        """Change a user's password after verifying the current password."""
+        user = self.user_repo.get_by_id(user_id)
+        
+        if not self.verify_password(current_password, user.password):
+            raise AuthenticationException("Current password is incorrect")
+        
+        user.password = self.hash_password(new_password)
+        self.db.commit()
+        logger.info("password_changed", user_id=user_id)

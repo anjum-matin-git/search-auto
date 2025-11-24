@@ -43,7 +43,13 @@ def create_search_workflow() -> StateGraph:
     return workflow.compile()
 
 
-async def run_search(query: str, user_id: int = None) -> SearchState:
+async def run_search(
+    query: str,
+    user_id: int = None,
+    location: str = None,
+    postal_code: str = None,
+    country: str = None,
+) -> SearchState:
     """
     Execute the car search workflow.
     
@@ -58,10 +64,13 @@ async def run_search(query: str, user_id: int = None) -> SearchState:
     
     workflow = create_search_workflow()
     
-    initial_state: SearchState = {
-        "query": query,
-        "user_id": user_id,
-    }
+    initial_state: SearchState = {"query": query, "user_id": user_id}
+    if location:
+        initial_state["preferred_location"] = location
+    if postal_code:
+        initial_state["preferred_postal_code"] = postal_code
+    if country:
+        initial_state["preferred_country"] = country
     
     final_state = await workflow.ainvoke(initial_state)
     

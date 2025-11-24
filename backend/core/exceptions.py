@@ -1,7 +1,7 @@
 """
 Custom application exceptions with standardized error handling.
 """
-from typing import Any
+from typing import Any, Dict, Optional
 
 
 class AppException(Exception):
@@ -11,7 +11,7 @@ class AppException(Exception):
         self,
         message: str,
         status_code: int = 500,
-        details: dict[str, Any] | None = None,
+        details: Optional[Dict[str, Any]] = None,
     ):
         self.message = message
         self.status_code = status_code
@@ -40,7 +40,7 @@ class AuthenticationException(AppException):
 class ValidationException(AppException):
     """Validation error exception."""
     
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=message,
             status_code=422,

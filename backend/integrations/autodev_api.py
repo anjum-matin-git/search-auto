@@ -2,16 +2,32 @@
 Auto.dev API integration for real car listings.
 Provides access to dealer inventory with actual vehicle data and images.
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
+import math
 
 import httpx
+import pgeocode
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
 from core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+CANADIAN_CITY_POSTALS = {
+    "vancouver": "V5K",
+    "toronto": "M5H",
+    "montreal": "H1A",
+    "calgary": "T2P",
+    "ottawa": "K1A",
+    "edmonton": "T5J",
+    "winnipeg": "R3C",
+    "mississauga": "L5B",
+    "victoria": "V8W",
+    "hamilton": "L8P",
+}
 
 
 class AutoDevAPI:
@@ -26,6 +42,11 @@ class AutoDevAPI:
             self.enabled = True
             self.base_url = "https://www.auto.dev/api/listings"
             logger.info("autodev_client_initialized")
+        # Geocoders for CA/US lookups (used to keep Canadian requests actually Canadian)
+        self.geocoders = {
+            "CA": pgeocode.Nominatim("ca"),
+            "US": pgeocode.Nominatim("us"),
+        }
     
     @retry(
         stop=stop_after_attempt(3),
@@ -64,7 +85,7 @@ class AutoDevAPI:
                 
                 logger.info("autodev_search_success", listings_found=len(listings))
                 
-                cars = self._convert_listings_to_car_format(listings)
+                cars = self._convert_listings_to_car_format(listings, query_params)
                 return cars
                 
         except Exception as e:
@@ -90,45 +111,36 @@ class AutoDevAPI:
         if query_params.get("year_min"):
             params["year_min"] = query_params["year_min"]
         
+        country, latitude, longitude, resolved_zip = self._resolve_geo_targets(query_params)
+        params["country"] = country
         if query_params.get("location"):
-            params["zip"] = self._location_to_zip(query_params["location"])
+            params["location"] = query_params["location"]
+        if latitude is not None and longitude is not None:
+            params["latitude"] = latitude
+            params["longitude"] = longitude
+        if resolved_zip and resolved_zip.isdigit():
+            params["zip"] = resolved_zip
+        
+        radius = query_params.get("radius_km")
+        if radius:
+            params["radius"] = radius
         
         params["page_size"] = 9
         
         return params
     
-    def _location_to_zip(self, location: str) -> str:
-        """Convert location string to zip code."""
-        zip_map = {
-            "california": "90001",
-            "los angeles": "90001",
-            "san francisco": "94102",
-            "san diego": "92101",
-            "sacramento": "95814",
-            "san jose": "95110",
-            "new york": "10001",
-            "chicago": "60601",
-            "houston": "77001",
-            "phoenix": "85001",
-        }
-        
-        location_lower = location.lower()
-        for key, zip_code in zip_map.items():
-            if key in location_lower:
-                return zip_code
-        
-        return "90001"
-    
-    def _convert_listings_to_car_format(self, listings: List[Dict]) -> List[Dict[str, Any]]:
+    def _convert_listings_to_car_format(self, listings: List[Dict], query_params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Convert Auto.dev listings to our car format."""
         cars = []
+        target_country = (query_params or {}).get("country") or "CA"
+        currency_prefix = "C$" if target_country == "CA" else "$"
         
         for listing in listings:
             try:
                 vin = listing.get("vin", "")
-                price = listing.get("price", 0)
+                raw_price = listing.get("price", 0)
                 
-                if not price:
+                if not raw_price:
                     continue
                 
                 year = listing.get("year", 2023)
@@ -150,6 +162,7 @@ class AutoDevAPI:
                 if isinstance(images, list) and len(images) > 0:
                     if isinstance(images[0], dict):
                         images = [img.get("url", img.get("uri", "")) for img in images]
+                images = [img for img in images if isinstance(img, str) and img]
                 
                 # Get dealer info from Auto.dev response
                 dealer_name = listing.get("dealerName", "Auto Dealer")
@@ -169,7 +182,8 @@ class AutoDevAPI:
                     if not dealer_state:
                         dealer_state = dealer_obj.get("state", "CA")
                 
-                full_location = f"{dealer_city}, {dealer_state}" if dealer_city else "California"
+                region_suffix = ", Canada" if target_country == "CA" else ""
+                full_location = f"{dealer_city}, {dealer_state}{region_suffix}" if dealer_city else f"{dealer_state}{region_suffix}" or "Toronto, ON"
                 full_address = dealer_address if dealer_address else f"Dealer Location, {full_location}"
                 
                 # Extract features from Auto.dev listing
@@ -198,11 +212,23 @@ class AutoDevAPI:
                 vdp_url = listing.get("vdpUrl", "")
                 source_url = listing.get("clickoffUrl") or (f"https://www.auto.dev{vdp_url}" if vdp_url else "")
                 
+                converted_price = raw_price
+                if target_country == "CA" and isinstance(raw_price, (int, float)):
+                    converted_price = int(raw_price * 1.35)
+                
+                logger.debug(
+                    "autodev_listing_parsed",
+                    make=make,
+                    model=model,
+                    year=year,
+                    price=converted_price
+                )
+                
                 car = {
                     "brand": make,
                     "model": model,
                     "year": year,
-                    "price": price,
+                    "price": converted_price,
                     "mileage": mileage,
                     "location": full_location,
                     "dealer_name": dealer_name,
@@ -220,6 +246,8 @@ class AutoDevAPI:
                     "mpg": 28.0,
                 }
                 
+                if target_country == "CA" and isinstance(car["price"], (int, float)):
+                    car["display_currency"] = "CAD"
                 cars.append(car)
                 
             except Exception as e:
@@ -227,3 +255,57 @@ class AutoDevAPI:
                 continue
         
         return cars
+
+    def _resolve_geo_targets(self, query_params: Dict[str, Any]) -> tuple[str, Optional[float], Optional[float], Optional[str]]:
+        """Return (country, lat, lon, postal) for API calls."""
+        country = (query_params.get("country") or "US").upper()
+        postal_code = query_params.get("postal_code")
+        location = query_params.get("location")
+        lat = lon = None
+        resolved_postal = None
+        
+        if postal_code:
+            lookup = self._postal_to_latlon(postal_code, country)
+            if lookup:
+                lat, lon, resolved_postal = lookup
+        
+        if (lat is None or lon is None) and location:
+            fallback_postal = self._city_to_postal(location, country)
+            if fallback_postal:
+                lookup = self._postal_to_latlon(fallback_postal, country)
+                if lookup:
+                    lat, lon, resolved_postal = lookup
+        
+        return country, lat, lon, resolved_postal
+
+    def _postal_to_latlon(self, postal_code: str, country: str) -> Optional[tuple[float, float, str]]:
+        """Use pgeocode to turn postal codes into coordinates."""
+        if not postal_code:
+            return None
+        cleaned = postal_code.replace(" ", "").upper()
+        if country == "CA":
+            cleaned = cleaned[:3]
+        geocoder = self.geocoders.get(country)
+        if not geocoder:
+            return None
+        record = geocoder.query_postal_code(cleaned)
+        try:
+            lat = float(record.latitude)
+            lon = float(record.longitude)
+        except (TypeError, ValueError, AttributeError):
+            return None
+        if math.isnan(lat) or math.isnan(lon):
+            return None
+        resolved = record.postal_code if getattr(record, "postal_code", None) else cleaned
+        return lat, lon, resolved
+
+    def _city_to_postal(self, location: str, country: str) -> Optional[str]:
+        """Map major Canadian cities to representative postal prefixes."""
+        if not location:
+            return None
+        location_lower = location.lower()
+        if country == "CA":
+            for city, postal in CANADIAN_CITY_POSTALS.items():
+                if city in location_lower:
+                    return postal
+        return None

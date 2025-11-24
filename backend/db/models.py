@@ -18,19 +18,21 @@ class User(Base):
     password = Column(String, nullable=False)
     location = Column(String)
     postal_code = Column(String)
+    initial_preferences = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Stripe integration
     stripe_customer_id = Column(String, unique=True)
     
     # Credit system
-    credits_remaining = Column(Integer, default=10)  # Free tier: 10 searches
+    credits_remaining = Column(Integer, default=3)  # Free tier: 3 searches before paywall
     unlimited_searches = Column(Boolean, default=False)  # Pro plan
     
     # Relationships
     searches = relationship("Search", back_populates="user")
     subscription = relationship("UserSubscription", back_populates="user", uselist=False)
     preferences = relationship("UserPreference", back_populates="user", uselist=False)
+    conversations = relationship("Conversation", back_populates="user")
 
 
 class Plan(Base):
@@ -114,8 +116,37 @@ class UserPreference(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
     preferences = Column(JSON)
+    preferred_brands = Column(JSON, default=list)
+    preferred_types = Column(JSON, default=list)
+    price_range_min = Column(Integer)
+    price_range_max = Column(Integer)
     
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", back_populates="preferences")
+
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    title = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="conversations")
+    messages = relationship("ConversationMessage", back_populates="conversation", cascade="all, delete-orphan", order_by="ConversationMessage.created_at")
+
+
+class ConversationMessage(Base):
+    __tablename__ = "conversation_messages"
+    
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    role = Column(String, nullable=False)  # 'user' or 'assistant'
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    conversation = relationship("Conversation", back_populates="messages")

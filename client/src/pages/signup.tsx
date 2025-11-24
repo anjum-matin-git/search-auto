@@ -98,12 +98,8 @@ export default function Signup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Only submit if we're on step 3
-    if (step !== 3) {
-      return;
-    }
-    console.log("Form submitted!", formData);
-    signupMutation.mutate();
+    // Prevent any form submission - user must click the button
+    return false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -345,7 +341,13 @@ export default function Signup() {
                   </motion.button>
                 ) : (
                   <motion.button
-                    type="submit"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (step === 3) {
+                        signupMutation.mutate();
+                      }
+                    }}
                     disabled={signupMutation.isPending}
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}

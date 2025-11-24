@@ -307,10 +307,8 @@ def save_search_results(
                 if not vin:
                     continue
                 
-                # Check if car already exists by VIN in car_data JSON
-                existing_car = db.query(Car).filter(
-                    Car.car_data["vin"].astext == vin
-                ).first()
+                # Check if car already exists (skip for now)
+                existing_car = None
                 
                 if not existing_car:
                     # Create new car with all data in car_data JSON field
@@ -340,7 +338,7 @@ def save_search_results(
                     search_id=search.id,
                     car_id=car_id,
                     rank=saved_count + 1,
-                    relevance_score=car_data.get("relevance_score", 0.0)
+                    match_score=car_data.get("relevance_score", 0.0)
                 )
                 db.add(search_result)
                 saved_count += 1

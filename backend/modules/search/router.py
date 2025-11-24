@@ -1,18 +1,18 @@
 """
-FastAPI router for search endpoints.
+FastAPI router for search using ReAct agent.
+Simplified, intelligent search powered by LangGraph.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Optional, Tuple
+from typing import Optional
 
 from db.base import get_db
 from db.models import User
-from db.repositories import SearchRepository, UserRepository
+from db.repositories import UserRepository, UserPreferenceRepository
 from core.jwt_auth import get_current_user_jwt
-from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
-from agents.search.workflow import run_search
+from modules.search.schemas import SearchRequest, SearchResponse
+from agents.react_agent import car_search_agent
 from services.credits_service import CreditsService
-from integrations.autodev_api import AutoDevAPI
 from core.logging import get_logger
 from core.exceptions import AppException
 
@@ -20,353 +20,109 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
-def _derive_location_context(user: User) -> Tuple[str, Optional[str], str]:
-    """Determine best-effort location details for a user."""
-    location = (user.location or "").strip()
-    postal = (user.postal_code or "").strip()
-    country = "CA"  # default Canada focus
-    
-    if location:
-        if "canada" not in location.lower():
-            location = f"{location}, Canada"
-    elif postal:
-        location = f"{postal}, Canada"
-    else:
-        location = "Canada"
-    
-    return location, postal or None, country
-
-
 @router.post("", response_model=SearchResponse)
-async def search_cars(
+async def search_cars_with_agent(
     request: SearchRequest,
     current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
     """
-    Search for cars using natural language query.
-    Requires authentication so we can enforce credit usage and personalize the experience.
+    Search for cars using autonomous ReAct agent.
+    The agent intelligently uses tools to find the best matches.
     """
-    credits_service = CreditsService(db)
     user_id = current_user.id if isinstance(current_user.id, int) else int(current_user.id)
     
-    # Check quota before search
+    # Check and deduct credits
+    credits_service = CreditsService(db)
     has_quota = credits_service.check_quota(user_id)
     if not has_quota:
         logger.warning("search_quota_exceeded", user_id=user_id)
         raise AppException("No credits remaining. Please upgrade your plan.", 402)
     
-    # Deduct credit BEFORE search (prevents race conditions)
-    # If search fails, we could refund, but simpler to deduct upfront
     try:
         credits_service.deduct_credit(user_id)
-        logger.info("credit_deducted_before_search", user_id=user_id)
-        # Commit the transaction to release the user row lock
+        logger.info("credit_deducted", user_id=user_id)
         db.commit()
     except AppException as e:
-        # Re-raise 402 errors (no credits)
         if e.status_code == 402:
             raise
-        # For other errors, log and continue
         logger.error("credit_deduction_failed", user_id=user_id, error=str(e))
     
-    location_label, postal_code, country = _derive_location_context(current_user)
+    # Build user context
+    user_context = _build_user_context(user_id, current_user, db)
     
-    # Run search workflow
-    final_state = await run_search(
-        query=request.query,
-        user_id=user_id,
-        location=location_label,
-        postal_code=postal_code,
-        country=country
+    # Run ReAct agent
+    logger.info("agent_search_start", query=request.query, user_id=user_id)
+    result = await car_search_agent.search(request.query, user_context)
+    
+    logger.info(
+        "agent_search_complete",
+        tool_calls=result["tool_calls_made"],
+        response_length=len(result["response"])
     )
     
-    # Transform car data to match frontend expectations
-    matched_cars_with_scores = []
-    for car, score in zip(
-        final_state.get("matched_cars", []),
-        final_state.get("match_scores", [])
-    ):
-        # Format price - handle both numeric and pre-formatted strings from Auto.dev
-        price_value = car.get("price")
-        currency_prefix = "C$" if car.get("display_currency") == "CAD" else "$"
-        if isinstance(price_value, str):
-            price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
-            # Extract numeric value
-            price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value != "New" else 0
-        elif isinstance(price_value, (int, float)):
-            price_numeric = int(price_value)
-            price_str = f"{currency_prefix}{price_numeric:,}"
-        else:
-            price_numeric = 0
-            price_str = "Contact for price"
-        
-        # Format mileage - handle both numeric and string formats from Auto.dev
-        mileage_value = car.get("mileage")
-        if isinstance(mileage_value, str):
-            # Already formatted (e.g., "146,227 Miles" or "New")
-            mileage_str = mileage_value
-            # Extract numeric value
-            try:
-                mileage_numeric = int(mileage_value.replace(",", "").replace(" Miles", "").replace(" mi", "")) if mileage_value and mileage_value != "New" else 0
-            except:
-                mileage_numeric = 0
-        elif isinstance(mileage_value, (int, float)):
-            mileage_numeric = int(mileage_value)
-            mileage_str = f"{mileage_numeric:,} mi"
-        else:
-            mileage_numeric = 0
-            mileage_str = None
-        
-        # Create specs object from top-level fields
-        specs = None
-        if any(car.get(k) for k in ["acceleration", "top_speed", "power", "mpg"]):
-            specs = {
-                "acceleration": f"{car.get('acceleration')}s" if car.get('acceleration') else None,
-                "topSpeed": f"{int(car.get('top_speed'))} mph" if car.get('top_speed') else None,
-                "power": f"{int(car.get('power'))} hp" if car.get('power') else None,
-                "mpg": f"{car.get('mpg')} mpg" if car.get('mpg') else None,
-            }
-        
-        # Convert match score to percentage (0-100)
-        match_percentage = int(abs(score) * 100) if score is not None else 95
-        
-        image_urls = [img for img in (car.get("images", []) or []) if isinstance(img, str) and img]
-        car_response = CarResponse(
-            id=car.get("id"),
-            brand=car.get("brand", "Unknown"),
-            model=car.get("model", "Unknown"),
-            year=car.get("year", 2024),
-            price=price_str,
-            priceNumeric=price_numeric,
-            mileage=mileage_str,
-            mileageNumeric=mileage_numeric,
-            location=car.get("location"),
-            type=car.get("type"),
-            source=car.get("source"),
-            sourceUrl=car.get("sourceUrl") or car.get("url"),
-            description=car.get("description"),
-            features=car.get("features", []),
-            images=image_urls,
-            specs=specs,
-            match=match_percentage,
-            vin=car.get("vin"),
-            dealerName=car.get("dealer_name"),
-            dealerPhone=car.get("dealer_phone"),
-            dealerAddress=car.get("dealer_address")
-        )
-        matched_cars_with_scores.append(car_response)
-    
+    # For now, return agent's text response
+    # TODO: Extract structured car data from agent's tool calls
     return SearchResponse(
         success=True,
         query=request.query,
-        count=len(matched_cars_with_scores),
-        results=matched_cars_with_scores,
-        search_id=final_state.get("search_id")
+        count=0,
+        results=[],
+        search_id=None,
+        message=result["response"]
     )
 
 
-@router.get("/personalized", response_model=SearchResponse)
-async def get_personalized_cars(
+def _build_user_context(user_id: int, user: User, db: Session) -> dict:
+    """Build context about the user for personalization."""
+    context = {
+        "location": user.location,
+        "postal_code": user.postal_code,
+        "preferences": {}
+    }
+    
+    try:
+        pref_repo = UserPreferenceRepository(db)
+        prefs = pref_repo.get_by_user_id(user_id)
+        
+        if prefs:
+            context["preferences"] = {
+                "preferred_brands": prefs.preferred_brands or [],
+                "preferred_types": prefs.preferred_types or [],
+                "budget": prefs.preferences.get("budget") if prefs.preferences else None
+            }
+    except Exception as e:
+        logger.warning("failed_to_load_preferences", user_id=user_id, error=str(e))
+    
+    return context
+
+
+@router.get("/personalized")
+async def get_personalized_recommendations(
     current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
     """
-    Get personalized car recommendations for the logged-in user.
-    - If user has search history, return their most recent search results
-    - If no history, search for cars near their signup location
+    Get personalized car recommendations based on user preferences.
+    Uses the agent to find cars matching user's profile.
     """
     user_id = current_user.id if isinstance(current_user.id, int) else int(current_user.id)
-    search_repo = SearchRepository(db)
     
-    logger.info("personalized_request", user_id=user_id)
+    # Build context
+    user_context = _build_user_context(user_id, current_user, db)
     
-    # Try to get user's latest search with results
-    latest_search_data = search_repo.get_latest_with_results(user_id)
+    # Create query from preferences
+    query = "Show me cars that match my preferences"
+    if user_context["preferences"].get("preferred_brands"):
+        brands = ", ".join(user_context["preferences"]["preferred_brands"][:2])
+        query = f"Show me {brands} cars that match my preferences"
     
-    if latest_search_data:
-        # User has search history - return cached results
-        search, car_results = latest_search_data
-        logger.info("personalized_from_history", user_id=user_id, search_id=search.id, results_count=len(car_results))
-        
-        # Transform to response format
-        matched_cars_with_scores = []
-        for car_model, match_score in car_results:
-            car_data = car_model.car_data
-            
-            # Format price
-            price_value = car_data.get("price")
-            currency_prefix = "C$" if car_data.get("display_currency") == "CAD" else "$"
-            if isinstance(price_value, str):
-                price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
-                try:
-                    price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value not in ["New", "accepting_offers"] else 0
-                except:
-                    price_numeric = 0
-            elif isinstance(price_value, (int, float)):
-                price_numeric = int(price_value)
-                price_str = f"{currency_prefix}{price_numeric:,}"
-            else:
-                price_numeric = 0
-                price_str = "Contact for price"
-            
-            # Format mileage
-            mileage_value = car_data.get("mileage")
-            if isinstance(mileage_value, str):
-                mileage_str = mileage_value
-                try:
-                    mileage_numeric = int(mileage_value.replace(",", "").replace(" Miles", "").replace(" mi", "")) if mileage_value and mileage_value != "New" else 0
-                except:
-                    mileage_numeric = 0
-            elif isinstance(mileage_value, (int, float)):
-                mileage_numeric = int(mileage_value)
-                mileage_str = f"{mileage_numeric:,} mi"
-            else:
-                mileage_numeric = 0
-                mileage_str = None
-            
-            # Create specs
-            specs = None
-            if any(car_data.get(k) for k in ["acceleration", "top_speed", "power", "mpg"]):
-                specs = {
-                    "acceleration": f"{car_data.get('acceleration')}s" if car_data.get('acceleration') else None,
-                    "topSpeed": f"{int(car_data.get('top_speed'))} mph" if car_data.get('top_speed') else None,
-                    "power": f"{int(car_data.get('power'))} hp" if car_data.get('power') else None,
-                    "mpg": f"{car_data.get('mpg')} mpg" if car_data.get('mpg') else None,
-                }
-            
-            match_percentage = int(abs(match_score) * 100) if match_score is not None else 95
-            
-            image_urls = [img for img in (car_data.get("images", []) or []) if isinstance(img, str) and img]
-            car_response = CarResponse(
-                id=car_model.id,
-                brand=car_data.get("brand", "Unknown"),
-                model=car_data.get("model", "Unknown"),
-                year=car_data.get("year", 2024),
-                price=price_str,
-                priceNumeric=price_numeric,
-                mileage=mileage_str,
-                mileageNumeric=mileage_numeric,
-                location=car_data.get("location"),
-                type=car_data.get("type"),
-                source=car_data.get("source"),
-                sourceUrl=car_data.get("url"),
-                description=car_data.get("description"),
-                features=car_data.get("features", []),
-                images=image_urls,
-                specs=specs,
-                match=match_percentage,
-                vin=car_data.get("vin"),
-                dealerName=car_data.get("dealer_name"),
-                dealerPhone=car_data.get("dealer_phone"),
-                dealerAddress=car_data.get("dealer_address")
-            )
-            matched_cars_with_scores.append(car_response)
-        
-        return SearchResponse(
-            success=True,
-            query=search.query,
-            count=len(matched_cars_with_scores),
-            results=matched_cars_with_scores,
-            search_id=search.id
-        )
+    # Run agent
+    result = await car_search_agent.search(query, user_context)
     
-    else:
-        # No search history - use location to find nearby cars
-        user_location, postal_code, country = _derive_location_context(current_user)
-        logger.info("personalized_from_location", user_id=user_id, location=user_location)
-        
-        # Search for popular cars near user's location
-        autodev_api = AutoDevAPI()
-        cars = await autodev_api.search_listings({
-            "location": user_location,
-            "postal_code": postal_code,
-            "country": country,
-            "radius_km": 150,
-            "price_max": 50000  # Reasonable default
-        })
-        
-        if not cars:
-            # Return empty results
-            return SearchResponse(
-                success=True,
-                query=f"Cars near {user_location}",
-                count=0,
-                results=[]
-            )
-        
-        # Transform to response format (reuse same logic)
-        matched_cars_with_scores = []
-        for car_data in cars[:9]:  # Limit to 9
-            # Format price
-            price_value = car_data.get("price")
-            currency_prefix = "C$" if car_data.get("display_currency") == "CAD" else "$"
-            if isinstance(price_value, str):
-                price_str = price_value if price_value.startswith("$") or price_value.startswith("C$") else f"{currency_prefix}{price_value}"
-                try:
-                    price_numeric = int(price_value.replace("$", "").replace(",", "")) if price_value and price_value not in ["New", "accepting_offers"] else 0
-                except:
-                    price_numeric = 0
-            elif isinstance(price_value, (int, float)):
-                price_numeric = int(price_value)
-                price_str = f"{currency_prefix}{price_numeric:,}"
-            else:
-                price_numeric = 0
-                price_str = "Contact for price"
-            
-            # Format mileage
-            mileage_value = car_data.get("mileage")
-            if isinstance(mileage_value, str):
-                mileage_str = mileage_value
-                try:
-                    mileage_numeric = int(mileage_value.replace(",", "").replace(" Miles", "").replace(" mi", "")) if mileage_value and mileage_value != "New" else 0
-                except:
-                    mileage_numeric = 0
-            elif isinstance(mileage_value, (int, float)):
-                mileage_numeric = int(mileage_value)
-                mileage_str = f"{mileage_numeric:,} mi"
-            else:
-                mileage_numeric = 0
-                mileage_str = None
-            
-            specs = None
-            if any(car_data.get(k) for k in ["acceleration", "top_speed", "power", "mpg"]):
-                specs = {
-                    "acceleration": f"{car_data.get('acceleration')}s" if car_data.get('acceleration') else None,
-                    "topSpeed": f"{int(car_data.get('top_speed'))} mph" if car_data.get('top_speed') else None,
-                    "power": f"{int(car_data.get('power'))} hp" if car_data.get('power') else None,
-                    "mpg": f"{car_data.get('mpg')} mpg" if car_data.get('mpg') else None,
-                }
-            
-            image_urls = [img for img in (car_data.get("images", []) or []) if isinstance(img, str) and img]
-            car_response = CarResponse(
-                id=0,  # No ID for non-stored cars
-                brand=car_data.get("brand", "Unknown"),
-                model=car_data.get("model", "Unknown"),
-                year=car_data.get("year", 2024),
-                price=price_str,
-                priceNumeric=price_numeric,
-                mileage=mileage_str,
-                mileageNumeric=mileage_numeric,
-                location=car_data.get("location"),
-                type=car_data.get("type"),
-                source=car_data.get("source"),
-                sourceUrl=car_data.get("url"),
-                description=car_data.get("description"),
-                features=car_data.get("features", []),
-                images=image_urls,
-                specs=specs,
-                match=85,  # Default match for location-based results
-                vin=car_data.get("vin"),
-                dealerName=car_data.get("dealer_name"),
-                dealerPhone=car_data.get("dealer_phone"),
-                dealerAddress=car_data.get("dealer_address")
-            )
-            matched_cars_with_scores.append(car_response)
-        
-        return SearchResponse(
-            success=True,
-            query=f"Cars near {user_location}",
-            count=len(matched_cars_with_scores),
-            results=matched_cars_with_scores
-        )
+    return {
+        "success": True,
+        "recommendations": result["response"],
+        "query": query
+    }
+

@@ -57,35 +57,37 @@ AVAILABLE TOOLS:
 5. save_search_results - Save your findings and post results to the user's conversation
 6. post_message_to_user - Send a message to the user (for clarifications, no results, etc.)
 
-WORKFLOW:
-1. First, use extract_car_features to understand the user's query
-2. Then, use search_car_listings with the extracted features
-3. If needed, use filter_cars_by_criteria to refine results
-4. Use rank_cars_by_relevance to sort by best match
-5. **IMPORTANT**: Use save_search_results to save the top 3-5 cars and post your summary
-6. If no results found, use post_message_to_user to explain and suggest alternatives
+WORKFLOW (MUST FOLLOW EVERY TIME):
+1. extract_car_features - Understand the query
+2. search_car_listings - Find cars from Auto.dev
+3. filter_cars_by_criteria - Refine if needed
+4. rank_cars_by_relevance - Sort by best match
+5. **MANDATORY**: save_search_results - Save top 3-5 cars with your summary
 
 CRITICAL RULES:
-- ALWAYS use save_search_results when you find cars - this is how the user sees your results!
-- ALWAYS use post_message_to_user if you can't find any cars
-- Extract features first before searching
-- Search with broad criteria, then filter if needed
-- Focus on Canadian locations (country=CA) unless specified otherwise
-- If no results, try relaxing criteria (remove year, expand price range)
-- Be concise but informative - users want quick answers
+- You MUST call save_search_results as your FINAL step when you find cars
+- WITHOUT save_search_results, the user will NOT see any car cards on their screen
+- The save_search_results tool is what displays cars to the user
+- If no cars found, use post_message_to_user instead
 
-RESPONSE FORMAT:
-When calling save_search_results, provide:
-- results: List of top 3-5 cars with all details (brand, model, year, price, location, dealer, vin, images)
-- summary: A helpful message like "I found 3 great electric SUVs under $60k near you..."
+EXAMPLE WORKFLOW:
+User: "Electric SUV under $60k"
+1. extract_car_features(query="Electric SUV under $60k")
+2. search_car_listings(...)
+3. filter_cars_by_criteria(...)
+4. rank_cars_by_relevance(...)
+5. save_search_results(
+     user_id=123,
+     query="Electric SUV under $60k",
+     results=[
+       {brand: "Toyota", model: "bZ4X", year: 2026, price: 47370, location: "Glendale, CA", dealer: "Car Pros Kia", vin: "...", images: [...]},
+       {brand: "Nissan", model: "Ariya", year: 2024, price: 52000, ...},
+       {brand: "Chevy", model: "Bolt EUV", year: 2023, price: 28000, ...}
+     ],
+     summary="I found 3 great electric SUVs under $60k near you: 1. 2026 Toyota bZ4X - $47,370..."
+   )
 
-Include in your summary:
-- Brief intro of what you found
-- Top 3-5 cars with: Brand, Model, Year, Price, Location
-- Why each is a good match
-- Next steps or recommendations
-
-Remember: You're helping real people find real cars. Always save your results so they can see them!"""
+Remember: save_search_results is NOT optional - it's REQUIRED to show cars to the user!"""
     
     async def search(
         self,

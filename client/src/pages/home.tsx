@@ -136,33 +136,91 @@ export default function Home() {
         {searchMutation.isPending && (
           <section className="py-24 container mx-auto px-4 sm:px-6">
             <div className="flex flex-col items-center justify-center gap-8">
+              {/* Animated Brain/Thinking Icon */}
               <div className="relative">
-                <div className="absolute inset-0 bg-white rounded-full blur-2xl opacity-10 animate-pulse" />
-                <div className="relative w-20 h-20 rounded-full bg-white/10 flex items-center justify-center shadow-2xl shadow-black/50 border border-white/20">
-                  <Loader2 className="w-10 h-10 animate-spin text-white" />
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+                <div className="relative">
+                  {/* Orbiting dots */}
+                  <div className="relative w-32 h-32">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="absolute inset-0 animate-spin"
+                        style={{
+                          animationDuration: `${3 + i}s`,
+                          animationDelay: `${i * 0.3}s`
+                        }}
+                      >
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 shadow-lg shadow-purple-500/50" />
+                      </div>
+                    ))}
+                    {/* Center icon */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="text-center max-w-lg">
-                <h2 className="text-3xl font-display font-bold mb-3 text-white">
-                  AI Agent at Work
+              
+              {/* Animated Steps */}
+              <div className="text-center max-w-2xl space-y-6">
+                <h2 className="text-3xl font-display font-bold mb-6 text-white">
+                  🤖 AI Agent Thinking...
                 </h2>
-                <p className="text-white/70 text-lg leading-relaxed">
-                  Scanning AutoTrader, analyzing thousands of listings, and matching specifications to find your perfect vehicle...
-                </p>
-                <div className="flex gap-2 justify-center mt-6">
-                  {[1, 2, 3, 4].map((i) => (
+                
+                <div className="space-y-3">
+                  {[
+                    { icon: "🔍", text: "Analyzing your search query", delay: "0s" },
+                    { icon: "🚗", text: "Searching thousands of listings", delay: "0.5s" },
+                    { icon: "⚡", text: "Filtering by your preferences", delay: "1s" },
+                    { icon: "🎯", text: "Ranking best matches", delay: "1.5s" },
+                    { icon: "✨", text: "Preparing recommendations", delay: "2s" }
+                  ].map((step, i) => (
                     <div
                       key={i}
-                      className="w-2 h-2 rounded-full bg-white/70"
+                      className="flex items-center justify-center gap-3 text-white/70 text-sm"
                       style={{
-                        animation: `pulse 1.5s ease-in-out infinite`,
-                        animationDelay: `${i * 0.15}s`
+                        animation: "fadeInSlide 0.5s ease-out forwards",
+                        animationDelay: step.delay,
+                        opacity: 0
                       }}
-                    />
+                    >
+                      <span className="text-xl">{step.icon}</span>
+                      <span>{step.text}</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3].map((dot) => (
+                          <div
+                            key={dot}
+                            className="w-1 h-1 rounded-full bg-white/50"
+                            style={{
+                              animation: "pulse 1s ease-in-out infinite",
+                              animationDelay: `${dot * 0.2}s`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
+            
+            <style>{`
+              @keyframes fadeInSlide {
+                from {
+                  opacity: 0;
+                  transform: translateY(10px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
           </section>
         )}
 

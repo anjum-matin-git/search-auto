@@ -294,7 +294,6 @@ def save_search_results(
         search = Search(
             user_id=user_id,
             query=query,
-            filters={},
             created_at=datetime.utcnow()
         )
         db.add(search)

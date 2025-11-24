@@ -107,10 +107,14 @@ export default function Signup() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent Enter key from submitting the form on steps 1-2
-    if (e.key === "Enter" && step < 3) {
+    // Prevent Enter key from submitting the form
+    if (e.key === "Enter") {
       e.preventDefault();
-      handleNext();
+      // Only advance to next step if not on the last step
+      if (step < 3) {
+        handleNext();
+      }
+      // On step 3, do nothing - user must click the button
     }
   };
 

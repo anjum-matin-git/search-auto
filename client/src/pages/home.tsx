@@ -187,7 +187,9 @@ export default function Home() {
                         className="absolute w-full text-center text-white/80 text-lg"
                         style={{
                           animation: "slideText 10s ease-in-out infinite",
-                          animationDelay: `${i * 2}s`
+                          animationDelay: `${i * 2}s`,
+                          opacity: 0,
+                          visibility: "hidden"
                         }}
                       >
                         {text}
@@ -214,26 +216,29 @@ export default function Home() {
             
             <style>{`
               @keyframes slideText {
-                0%, 15% {
+                0%, 18% {
                   opacity: 0;
                   transform: translateY(20px);
+                  visibility: hidden;
                 }
-                20%, 35% {
+                20%, 38% {
                   opacity: 1;
                   transform: translateY(0);
+                  visibility: visible;
                 }
                 40%, 100% {
                   opacity: 0;
                   transform: translateY(-20px);
+                  visibility: hidden;
                 }
               }
               
               @keyframes progressDot {
-                0%, 15% {
+                0%, 18% {
                   background-color: rgba(255, 255, 255, 0.3);
                   transform: scale(1);
                 }
-                20%, 35% {
+                20%, 38% {
                   background-color: rgba(255, 255, 255, 1);
                   transform: scale(1.3);
                 }

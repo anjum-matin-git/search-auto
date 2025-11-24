@@ -159,6 +159,13 @@ class AutoDevAPI:
                 # Get actual dealer photos from Auto.dev API
                 images = listing.get("photoUrls", [])
                 
+                # Filter out SVG files and invalid URLs
+                if images:
+                    images = [
+                        img for img in images 
+                        if img and isinstance(img, str) and not img.lower().endswith('.svg')
+                    ]
+                
                 # Also check for primaryPhotoUrl if photoUrls is empty
                 if not images:
                     primary_photo = listing.get("primaryPhotoUrl")

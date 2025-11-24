@@ -105,10 +105,11 @@ async def search_car_listings(
             "price": car.get("price"),
             "mileage": car.get("mileage"),
             "location": car.get("location"),
-            "dealer_name": car.get("dealer_name"),
+            "dealer": car.get("dealer_name") or car.get("dealer"),  # Use dealer for consistency
             "description": car.get("description"),
             "features": car.get("features", [])[:3],
             "vin": car.get("vin"),
+            "images": car.get("images", []),  # Include images
             "sourceUrl": car.get("sourceUrl")
         }
         for car in cars[:15]  # Return top 15 for agent to analyze
@@ -334,11 +335,17 @@ def save_search_results(
                     car_id = existing_car.id
                 
                 # Link car to search
+                # Get match_score from rank_cars_by_relevance tool (stored as match_score)
+                match_score = car_data.get("match_score", 0.0)
+                # Convert to 0-1 range if needed
+                if match_score > 1:
+                    match_score = match_score / 100.0
+                
                 search_result = SearchResult(
                     search_id=search.id,
                     car_id=car_id,
                     rank=saved_count + 1,
-                    match_score=car_data.get("relevance_score", 0.0)
+                    match_score=match_score
                 )
                 db.add(search_result)
                 saved_count += 1

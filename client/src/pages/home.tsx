@@ -48,12 +48,12 @@ export default function Home() {
       setSearchCount(prev => prev + 1);
       
       // Show success message based on whether we have results or agent message
-      if (data.message) {
-        // Agent returned a text response (new ReAct agent)
-        toast.success("Search complete! Check the assistant for results.");
-      } else if (data.count > 0) {
-        // Traditional search with structured results
+      if (data.count > 0) {
+        // Agent found cars and saved them
         toast.success(`Found ${data.count} matching vehicles!`);
+      } else if (data.message) {
+        // Agent has a message but no structured results
+        toast.info("Search complete! Check the assistant for details.");
       } else {
         toast.info("Search complete. No exact matches found.");
       }

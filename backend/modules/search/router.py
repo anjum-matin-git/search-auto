@@ -64,14 +64,58 @@ async def search_cars_with_agent(
     # Check if there was an error in the agent
     has_error = "error" in result
     
-    # For now, return agent's text response
-    # TODO: Extract structured car data from agent's tool calls
+    # Extract saved search results from the database
+    car_results = []
+    search_id = None
+    
+    try:
+        from db.models import Search, SearchResult, Car
+        from modules.search.schemas import CarResponse
+        
+        # Get the most recent search for this user
+        latest_search = db.query(Search).filter(
+            Search.user_id == user_id,
+            Search.query == request.query
+        ).order_by(Search.created_at.desc()).first()
+        
+        if latest_search:
+            search_id = latest_search.id
+            
+            # Get all cars from this search
+            search_results = db.query(SearchResult).filter(
+                SearchResult.search_id == latest_search.id
+            ).order_by(SearchResult.rank).all()
+            
+            for sr in search_results:
+                car = db.query(Car).filter(Car.id == sr.car_id).first()
+                if car:
+                    # Format price as string with currency
+                    price_str = f"${car.price:,}" if car.price else "$0"
+                    
+                    car_results.append(CarResponse(
+                        id=car.id,
+                        vin=car.vin,
+                        brand=car.brand,
+                        model=car.model,
+                        year=car.year,
+                        price=price_str,
+                        priceNumeric=car.price,
+                        location=car.location,
+                        dealerName=car.dealer,
+                        images=car.images or [],
+                        match=int(sr.relevance_score * 100) if sr.relevance_score else None
+                    ))
+            
+            logger.info("extracted_search_results", search_id=search_id, count=len(car_results))
+    except Exception as e:
+        logger.warning("failed_to_extract_results", error=str(e))
+    
     return SearchResponse(
         success=not has_error,
         query=request.query,
-        count=0,
-        results=[],
-        search_id=None,
+        count=len(car_results),
+        results=car_results,
+        search_id=search_id,
         message=result["response"]
     )
 

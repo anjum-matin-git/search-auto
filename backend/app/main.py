@@ -16,7 +16,7 @@ from core.logging import configure_logging, get_logger
 from core.exceptions import AppException
 from db.base import init_db
 from modules.auth.router import router as auth_router
-from modules.search.router import router as search_router
+from modules.search.router_agent import router as search_router  # Using ReAct agent
 from modules.billing.router import router as billing_router
 from modules.assistant.router import router as assistant_router
 

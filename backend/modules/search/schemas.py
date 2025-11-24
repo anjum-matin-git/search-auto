@@ -51,3 +51,4 @@ class SearchResponse(BaseModel):
     count: int
     results: List[CarResponse]
     search_id: Optional[int] = None
+    message: Optional[str] = None  # Agent's response text

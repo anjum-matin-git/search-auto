@@ -88,21 +88,25 @@ async def search_cars_with_agent(
             
             for sr in search_results:
                 car = db.query(Car).filter(Car.id == sr.car_id).first()
-                if car:
+                if car and car.car_data:
+                    # Extract data from JSON field
+                    data = car.car_data
+                    price_num = data.get("price", 0)
+                    
                     # Format price as string with currency
-                    price_str = f"${car.price:,}" if car.price else "$0"
+                    price_str = f"${price_num:,}" if price_num else "$0"
                     
                     car_results.append(CarResponse(
                         id=car.id,
-                        vin=car.vin,
-                        brand=car.brand,
-                        model=car.model,
-                        year=car.year,
+                        vin=data.get("vin"),
+                        brand=data.get("brand"),
+                        model=data.get("model"),
+                        year=data.get("year"),
                         price=price_str,
-                        priceNumeric=car.price,
-                        location=car.location,
-                        dealerName=car.dealer,
-                        images=car.images or [],
+                        priceNumeric=price_num,
+                        location=data.get("location"),
+                        dealerName=data.get("dealer"),
+                        images=data.get("images", []),
                         match=int(sr.relevance_score * 100) if sr.relevance_score else None
                     ))
             

@@ -303,39 +303,48 @@ def save_search_results(
         saved_count = 0
         for car_data in results[:10]:  # Limit to top 10
             try:
-                # Check if car already exists
+                vin = car_data.get("vin")
+                if not vin:
+                    continue
+                
+                # Check if car already exists by VIN in car_data JSON
                 existing_car = db.query(Car).filter(
-                    Car.vin == car_data.get("vin")
+                    Car.car_data["vin"].astext == vin
                 ).first()
                 
-                if not existing_car and car_data.get("vin"):
+                if not existing_car:
+                    # Create new car with all data in car_data JSON field
                     car = Car(
-                        vin=car_data.get("vin"),
-                        brand=car_data.get("brand"),
-                        model=car_data.get("model"),
-                        year=car_data.get("year"),
-                        price=car_data.get("price"),
-                        location=car_data.get("location"),
-                        dealer=car_data.get("dealer"),
-                        images=car_data.get("images", [])[:3],  # First 3 images
+                        car_data={
+                            "vin": vin,
+                            "brand": car_data.get("brand"),
+                            "model": car_data.get("model"),
+                            "year": car_data.get("year"),
+                            "price": car_data.get("price"),
+                            "location": car_data.get("location"),
+                            "dealer": car_data.get("dealer"),
+                            "images": car_data.get("images", [])[:3],
+                            "relevance_score": car_data.get("relevance_score", 0.0)
+                        },
+                        active=True,
                         created_at=datetime.utcnow()
                     )
                     db.add(car)
                     db.flush()
                     car_id = car.id
                 else:
-                    car_id = existing_car.id if existing_car else None
+                    car_id = existing_car.id
                 
-                if car_id:
-                    # Link car to search
-                    search_result = SearchResult(
-                        search_id=search.id,
-                        car_id=car_id,
-                        rank=saved_count + 1,
-                        relevance_score=car_data.get("relevance_score", 0.0)
-                    )
-                    db.add(search_result)
-                    saved_count += 1
+                # Link car to search
+                search_result = SearchResult(
+                    search_id=search.id,
+                    car_id=car_id,
+                    rank=saved_count + 1,
+                    relevance_score=car_data.get("relevance_score", 0.0)
+                )
+                db.add(search_result)
+                saved_count += 1
+                
             except Exception as e:
                 logger.warning("failed_to_save_car", error=str(e), vin=car_data.get("vin"))
                 continue

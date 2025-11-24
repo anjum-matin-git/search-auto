@@ -24,20 +24,27 @@ export default function Signup() {
   const signupMutation = useMutation({
     mutationFn: () => {
       console.log("Calling signup API...");
+      
+      // Build price range only if values are valid
+      const priceRange: any = {};
+      if (formData.priceMin && !isNaN(parseInt(formData.priceMin))) {
+        priceRange.min = parseInt(formData.priceMin);
+      }
+      if (formData.priceMax && !isNaN(parseInt(formData.priceMax))) {
+        priceRange.max = parseInt(formData.priceMax);
+      }
+      
       return signup({
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        postalCode: formData.postalCode,
-        location: formData.postalCode,
+        postalCode: formData.postalCode || undefined,
+        location: formData.postalCode || undefined,
         initialPreferences: {
           carTypes: formData.carTypes,
           brands: formData.brands,
-          priceRange: {
-            min: formData.priceMin ? parseInt(formData.priceMin) : undefined,
-            max: formData.priceMax ? parseInt(formData.priceMax) : undefined,
-          },
-          fuelType: formData.fuelType,
+          priceRange: Object.keys(priceRange).length > 0 ? priceRange : undefined,
+          fuelType: formData.fuelType || undefined,
         },
       });
     },

@@ -140,12 +140,17 @@ class AutoDevAPI:
                 vin = listing.get("vin", "")
                 raw_price = listing.get("price", 0)
                 
-                # Skip if price is not a number (e.g., "accepting_offers")
-                if not isinstance(raw_price, (int, float)):
+                # Handle price - could be int, float, or string like "$41,300"
+                if isinstance(raw_price, str):
+                    # Remove $ and commas, then convert to int
                     try:
-                        raw_price = int(raw_price)
+                        raw_price = int(raw_price.replace("$", "").replace(",", "").strip())
                     except (ValueError, TypeError):
+                        logger.warning("autodev_invalid_price", price=raw_price, vin=vin)
                         continue
+                elif not isinstance(raw_price, (int, float)):
+                    logger.warning("autodev_unexpected_price_type", price=raw_price, vin=vin)
+                    continue
                 
                 if not raw_price or raw_price <= 0:
                     continue

@@ -56,7 +56,22 @@ export default function Signup() {
     },
     onError: (error: any) => {
       console.error("Signup error:", error);
-      toast.error(error.message || "Signup failed");
+      
+      // Handle validation errors from backend
+      if (error.response?.data?.detail) {
+        const details = error.response.data.detail;
+        if (Array.isArray(details) && details.length > 0) {
+          // Show first validation error
+          const firstError = details[0];
+          toast.error(firstError.msg || "Validation failed");
+        } else if (typeof details === 'string') {
+          toast.error(details);
+        } else {
+          toast.error("Please check your input and try again");
+        }
+      } else {
+        toast.error(error.message || "Signup failed");
+      }
     },
   });
 
@@ -154,6 +169,7 @@ export default function Signup() {
                       placeholder="johndoe"
                       data-testid="input-username"
                     />
+                    <p className="text-xs text-white/50 mt-1">3-50 characters</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white/80">Email</label>
@@ -176,6 +192,7 @@ export default function Signup() {
                       placeholder="••••••••"
                       data-testid="input-password"
                     />
+                    <p className="text-xs text-white/50 mt-1">At least 6 characters</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2 text-white/80">Postal Code (Optional)</label>

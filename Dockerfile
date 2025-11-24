@@ -9,19 +9,17 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy backend requirements
-COPY backend/requirements.txt /app/backend/requirements.txt
+# Copy everything
+COPY . /app
 
 # Install Python dependencies
+WORKDIR /app/backend
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/backend/requirements.txt
-
-# Copy backend code
-COPY backend /app/backend
+    pip install --no-cache-dir -r requirements.txt
 
 # Expose port
 EXPOSE 8080
 
 # Start command
-CMD cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+CMD python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
 

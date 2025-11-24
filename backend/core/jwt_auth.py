@@ -59,10 +59,13 @@ def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        # Handle both PyJWT and python-jose exceptions
+        error_msg = str(e).lower()
+        if "expired" in error_msg:
+            raise HTTPException(status_code=401, detail="Token has expired")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
 
 
 async def get_current_user_jwt(

@@ -61,10 +61,13 @@ async def search_cars_with_agent(
         response_length=len(result["response"])
     )
     
+    # Check if there was an error in the agent
+    has_error = "error" in result
+    
     # For now, return agent's text response
     # TODO: Extract structured car data from agent's tool calls
     return SearchResponse(
-        success=True,
+        success=not has_error,
         query=request.query,
         count=0,
         results=[],

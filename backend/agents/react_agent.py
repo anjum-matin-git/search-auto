@@ -91,38 +91,68 @@ Remember: You're helping real people find real cars. Be helpful, accurate, and e
         """
         logger.info("agent_search_start", query=query)
         
-        # Build context-aware message
-        user_message = self._build_user_message(query, user_context)
-        
-        # Run the agent
-        result = await self.agent.ainvoke({
-            "messages": [user_message]
-        })
-        
-        # Extract final response
-        messages = result.get("messages", [])
-        final_message = messages[-1] if messages else None
-        
-        response_text = final_message.content if final_message else "No results found"
-        
-        # Count tool calls
-        tool_calls = sum(
-            1 for msg in messages 
-            if hasattr(msg, "tool_calls") and msg.tool_calls
-        )
-        
-        logger.info(
-            "agent_search_complete",
-            tool_calls=tool_calls,
-            response_length=len(response_text)
-        )
-        
-        return {
-            "response": response_text,
-            "query": query,
-            "tool_calls_made": tool_calls,
-            "messages": messages
-        }
+        try:
+            # Build context-aware message
+            user_message = self._build_user_message(query, user_context)
+            
+            # Run the agent
+            result = await self.agent.ainvoke({
+                "messages": [user_message]
+            })
+            
+            # Extract final response
+            messages = result.get("messages", [])
+            final_message = messages[-1] if messages else None
+            
+            response_text = final_message.content if final_message else "No results found"
+            
+            # Count tool calls
+            tool_calls = sum(
+                1 for msg in messages 
+                if hasattr(msg, "tool_calls") and msg.tool_calls
+            )
+            
+            logger.info(
+                "agent_search_complete",
+                tool_calls=tool_calls,
+                response_length=len(response_text)
+            )
+            
+            return {
+                "response": response_text,
+                "query": query,
+                "tool_calls_made": tool_calls,
+                "messages": messages
+            }
+            
+        except Exception as e:
+            logger.error(
+                "agent_search_error",
+                query=query,
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            
+            # Return a user-friendly error response
+            error_message = "I apologize, but I encountered an error while searching for cars. "
+            
+            # Provide specific error messages for common issues
+            if "rate_limit" in str(e).lower():
+                error_message += "The AI service is currently rate limited. Please try again in a moment."
+            elif "api_key" in str(e).lower() or "authentication" in str(e).lower():
+                error_message += "There's an authentication issue with the AI service. Please contact support."
+            elif "timeout" in str(e).lower():
+                error_message += "The request timed out. Please try again."
+            else:
+                error_message += "Please try again or contact support if the issue persists."
+            
+            return {
+                "response": error_message,
+                "query": query,
+                "tool_calls_made": 0,
+                "messages": [],
+                "error": str(e)
+            }
     
     def _build_user_message(
         self,

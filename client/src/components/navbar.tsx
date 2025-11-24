@@ -1,11 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Menu, User, LogOut } from "lucide-react";
+import { Menu, User, LogOut, X } from "lucide-react";
 import { getStoredUser, clearUser, type User as UserType } from "@/lib/auth-api";
 import { useState, useEffect } from "react";
 
 export function Navbar() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<UserType | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -14,8 +15,13 @@ export function Navbar() {
   const handleLogout = () => {
     clearUser();
     setUser(null);
+    setMobileMenuOpen(false);
     setLocation("/");
     window.location.href = "/";
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -73,11 +79,64 @@ export function Navbar() {
               </Link>
             </>
           )}
-          <button className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors text-white/80">
-            <Menu className="w-5 h-5" />
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors text-white/80"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-20 left-0 right-0 bg-black/95 backdrop-blur-3xl border-b border-white/10 shadow-2xl">
+          <div className="container mx-auto px-6 py-4 flex flex-col gap-2">
+            <Link href="/" onClick={closeMobileMenu}>
+              <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                Search
+              </button>
+            </Link>
+            <Link href="/pricing" onClick={closeMobileMenu}>
+              <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                Pricing
+              </button>
+            </Link>
+            
+            {user ? (
+              <>
+                <Link href="/profile" onClick={closeMobileMenu}>
+                  <button className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                    <User className="w-4 h-4" />
+                    {user.username}
+                  </button>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={closeMobileMenu}>
+                  <button className="w-full text-left px-4 py-3 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                    Log in
+                  </button>
+                </Link>
+                <Link href="/signup" onClick={closeMobileMenu}>
+                  <button className="w-full bg-white text-black px-4 py-3 rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors">
+                    Sign up
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

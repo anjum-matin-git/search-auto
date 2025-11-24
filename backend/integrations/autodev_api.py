@@ -140,7 +140,14 @@ class AutoDevAPI:
                 vin = listing.get("vin", "")
                 raw_price = listing.get("price", 0)
                 
-                if not raw_price:
+                # Skip if price is not a number (e.g., "accepting_offers")
+                if not isinstance(raw_price, (int, float)):
+                    try:
+                        raw_price = int(raw_price)
+                    except (ValueError, TypeError):
+                        continue
+                
+                if not raw_price or raw_price <= 0:
                     continue
                 
                 year = listing.get("year", 2023)

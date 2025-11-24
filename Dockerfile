@@ -16,6 +16,9 @@ COPY . .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Start command (Railway should override this with railway.toml)
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Create startup script
+RUN echo '#!/bin/sh\nexec python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT' > /start.sh && chmod +x /start.sh
+
+# Start command
+CMD ["/start.sh"]
 

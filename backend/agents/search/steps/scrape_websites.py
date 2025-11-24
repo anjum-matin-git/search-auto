@@ -1,12 +1,16 @@
 """
-Step 2: Scrape car listings using AutoTrader.ca for Canadian queries or Auto.dev for US.
+Step 2: Scrape car listings using multiple sources.
 """
 import re
 from typing import Dict, Any, List
+import asyncio
 
 from agents.search.state import SearchState
 from integrations.autodev_api import AutoDevAPI
 from integrations.autotrader_ca import AutoTraderCA
+from integrations.autotrader_scraper import AutoTraderScraper
+from integrations.kijiji_scraper import KijijiScraper
+from integrations.cargurus_scraper import CarGurusScraper
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -68,20 +72,43 @@ async def scrape_websites(state: SearchState) -> Dict[str, Any]:
             )
             query_params.pop("postal_code", None)
         
-        # Use AutoTrader.ca for Canadian queries
-        logger.info("using_autotrader_ca", params=query_params)
-        autotrader_ca = AutoTraderCA()
-        autotrader_cars = await autotrader_ca.search_listings(query_params)
+        # Use multiple Canadian sources in parallel
+        logger.info("using_canadian_sources", params=query_params)
         
-        # If AutoTrader.ca returns no results, try Auto.dev as fallback
+        # Extract search parameters
+        make = query_params.get("brand")
+        model = query_params.get("model")
+        location = query_params.get("location")
+        postal = query_params.get("postal_code")
+        
+        # Run all scrapers in parallel
+        autotrader_scraper = AutoTraderScraper()
+        kijiji_scraper = KijijiScraper()
+        cargurus_scraper = CarGurusScraper()
+        
+        results = await asyncio.gather(
+            autotrader_scraper.search(make, model, location, postal, max_results=30),
+            kijiji_scraper.search(make, model, location, postal, max_results=20),
+            cargurus_scraper.search(make, model, location, postal, max_results=20),
+            return_exceptions=True
+        )
+        
+        # Combine results from all sources
+        for result in results:
+            if isinstance(result, list):
+                autotrader_cars.extend(result)
+        
+        logger.info(
+            "canadian_scrapers_complete",
+            total_results=len(autotrader_cars),
+            sources=["AutoTrader.ca", "Kijiji", "CarGurus"]
+        )
+        
+        # If no results from scrapers, try Auto.dev as fallback
         if not autotrader_cars:
-            logger.warning(
-                "autotrader_ca_no_results",
-                message="AutoTrader.ca returned no cars, trying Auto.dev as fallback"
-            )
+            logger.warning("all_scrapers_failed", message="Trying Auto.dev as fallback")
             autodev = AutoDevAPI()
             autotrader_cars = await autodev.search_listings(query_params)
-            # Filter to only Canadian results
             autotrader_cars = _filter_canadian_only(autotrader_cars)
     else:
         # Use Auto.dev for US queries

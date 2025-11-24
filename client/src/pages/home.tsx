@@ -357,29 +357,29 @@ export default function Home() {
             </div>
           </section>
         )}
+        
+        <footer className="bg-black/40 border-t border-white/10 py-16 px-6 backdrop-blur-3xl mt-24">
+          <div className="container mx-auto max-w-4xl text-center">
+            <div className="mb-8">
+              <a href="/" className="font-display font-bold text-3xl tracking-tight inline-flex items-center gap-2 text-white mb-4">
+                <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center shadow-lg shadow-black/50">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  </svg>
+                </div>
+                SearchAuto
+              </a>
+              <p className="text-white/60 text-lg max-w-md mx-auto">
+                AI-powered car search made simple
+              </p>
+            </div>
+            
+            <div className="pt-8 border-t border-white/10 text-sm text-white/50">
+              © 2025 SearchAuto
+            </div>
+          </div>
+        </footer>
       </main>
-      
-      <footer className="bg-black/40 border-t border-white/10 py-16 px-6 backdrop-blur-3xl">
-        <div className="container mx-auto max-w-4xl text-center">
-          <div className="mb-8">
-            <a href="/" className="font-display font-bold text-3xl tracking-tight inline-flex items-center gap-2 text-white mb-4">
-              <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center shadow-lg shadow-black/50">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                </svg>
-              </div>
-              SearchAuto
-            </a>
-            <p className="text-white/60 text-lg max-w-md mx-auto">
-              AI-powered car search made simple
-            </p>
-          </div>
-          
-          <div className="pt-8 border-t border-white/10 text-sm text-white/50">
-            © 2025 SearchAuto. Built with AI.
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

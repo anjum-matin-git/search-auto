@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { signup, storeUser } from "@/lib/auth-api";
-import { Loader2, ArrowRight, Check } from "lucide-react";
+import { Loader2, ArrowRight, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Signup() {
@@ -23,9 +23,6 @@ export default function Signup() {
 
   const signupMutation = useMutation({
     mutationFn: () => {
-      console.log("Calling signup API...");
-      
-      // Build price range only if values are valid
       const priceRange: any = {};
       if (formData.priceMin && !isNaN(parseInt(formData.priceMin))) {
         priceRange.min = parseInt(formData.priceMin);
@@ -49,21 +46,15 @@ export default function Signup() {
       });
     },
     onSuccess: (data) => {
-      console.log("Signup success!", data);
       storeUser(data.user);
       toast.success("Welcome to SearchAuto!");
       setLocation("/");
     },
     onError: (error: any) => {
-      console.error("Signup error:", error);
-      
-      // Handle validation errors from backend
       if (error.response?.data?.detail) {
         const details = error.response.data.detail;
         if (Array.isArray(details) && details.length > 0) {
-          // Show first validation error
-          const firstError = details[0];
-          toast.error(firstError.msg || "Validation failed");
+          toast.error(details[0].msg || "Validation failed");
         } else if (typeof details === 'string') {
           toast.error(details);
         } else {
@@ -98,168 +89,174 @@ export default function Signup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Prevent any form submission - user must click the button
     return false;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent Enter key from submitting the form
     if (e.key === "Enter") {
       e.preventDefault();
-      // Only advance to next step if not on the last step
       if (step < 3) {
         handleNext();
       }
-      // On step 3, do nothing - user must click the button
     }
   };
 
   return (
-    <div className="min-h-screen relative text-white">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-[#050014]/85 to-[#050014]/95" />
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4 py-12">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="orb orb-primary w-[400px] h-[400px] -top-20 -right-20 opacity-30" />
+        <div className="orb orb-accent w-[300px] h-[300px] bottom-20 -left-20 opacity-30" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-lg relative z-10"
+      >
+        {/* Logo */}
+        <a href="/" className="flex items-center justify-center gap-2 mb-8">
+          <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            </svg>
+          </div>
+          <span className="font-bold text-2xl text-gray-900">SearchAuto</span>
+        </a>
+
+        {/* Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-2xl"
+          initial={{ scale: 0.98 }}
+          animate={{ scale: 1 }}
+          className="bg-white rounded-2xl p-8 shadow-xl shadow-gray-200/50 border border-gray-200"
         >
-          <a href="/" className="block text-center mb-8">
-            <div className="inline-flex items-center gap-2 font-display font-bold text-2xl text-white">
-              <div className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center shadow-lg shadow-black/50">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                </svg>
-              </div>
-              SearchAuto
-            </div>
-          </a>
-          <motion.div
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white/5 rounded-3xl p-8 md:p-12 shadow-[0_35px_120px_rgba(0,0,0,0.65)] border border-white/10 backdrop-blur-2xl"
-          >
-            <div className="mb-8">
-              <h1 className="text-4xl font-display font-bold mb-2 text-white">Join SearchAuto</h1>
-              <p className="text-white/70">Let's find your perfect car together</p>
-            </div>
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
+            <p className="text-gray-500">Step {step} of 3</p>
+          </div>
 
-            <div className="flex gap-2 mb-8">
-              {[1, 2, 3].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1 flex-1 rounded-full transition-all ${
-                    s <= step ? "bg-white" : "bg-white/20"
-                  }`}
-                />
-              ))}
-            </div>
+          {/* Progress bar */}
+          <div className="flex gap-2 mb-8">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-1.5 flex-1 rounded-full transition-all ${
+                  s <= step ? "bg-indigo-600" : "bg-gray-200"
+                }`}
+              />
+            ))}
+          </div>
 
-            <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-              {step === 1 && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                  <h2 className="text-xl font-semibold mb-4 text-white">Account Details</h2>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white/80">Username</label>
-                    <input
-                      type="text"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none transition-all"
-                      placeholder="johndoe"
-                      data-testid="input-username"
-                    />
-                    <p className="text-xs text-white/50 mt-1">3-50 characters</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white/80">Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none transition-all"
-                      placeholder="john@example.com"
-                      data-testid="input-email"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white/80">Password</label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none transition-all"
-                      placeholder="••••••••"
-                      data-testid="input-password"
-                    />
-                    <p className="text-xs text-white/50 mt-1">At least 6 characters</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white/80">Postal Code (Optional)</label>
-                    <input
-                      type="text"
-                      value={formData.postalCode}
-                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none transition-all"
-                      placeholder="10001"
-                      data-testid="input-postal"
-                    />
-                    <p className="text-xs text-white/50 mt-1">We'll show you cars nearby</p>
-                  </div>
-                </motion.div>
-              )}
+          <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+            {step === 1 && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    placeholder="johndoe"
+                    data-testid="input-username"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">3-50 characters</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    placeholder="john@example.com"
+                    data-testid="input-email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    placeholder="••••••••"
+                    data-testid="input-password"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">At least 6 characters</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code <span className="text-gray-400">(optional)</span></label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    placeholder="10001"
+                    data-testid="input-postal"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">We'll show you cars nearby</p>
+                </div>
+              </motion.div>
+            )}
 
-              {step === 2 && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">What type of car interests you?</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {step === 2 && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">What type of car interests you?</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {carTypes.map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => toggleSelection("carTypes", type)}
-                        className={`p-4 rounded-xl border-2 transition-all ${
+                        className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
                           formData.carTypes.includes(type)
-                            ? "border-white bg-white/10 text-white"
-                            : "border-white/15 hover:border-white/40 text-white/70"
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                            : "border-gray-200 hover:border-gray-300 text-gray-600"
                         }`}
                         data-testid={`type-${type.toLowerCase()}`}
                       >
-                        {formData.carTypes.includes(type) && <Check className="w-4 h-4 mb-1" />}
-                        <span className="font-medium">{type}</span>
+                        <span className="flex items-center justify-center gap-2">
+                          {formData.carTypes.includes(type) && <Check className="w-4 h-4" />}
+                          {type}
+                        </span>
                       </button>
                     ))}
                   </div>
+                </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 text-white">Preferred Brands</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {brands.map((brand) => (
-                        <button
-                          key={brand}
-                          type="button"
-                          onClick={() => toggleSelection("brands", brand)}
-                          className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                            formData.brands.includes(brand)
-                              ? "bg-white text-black"
-                              : "bg-white/10 text-white/70 hover:text-white hover:bg-white/20"
-                          }`}
-                          data-testid={`brand-${brand.toLowerCase()}`}
-                        >
-                          {brand}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Preferred brands</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {brands.map((brand) => (
+                      <button
+                        key={brand}
+                        type="button"
+                        onClick={() => toggleSelection("brands", brand)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          formData.brands.includes(brand)
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        data-testid={`brand-${brand.toLowerCase()}`}
+                      >
+                        {brand}
+                      </button>
+                    ))}
                   </div>
-                </motion.div>
-              )}
+                </div>
+              </motion.div>
+            )}
 
-              {step === 3 && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                  <h2 className="text-xl font-semibold text-white">Budget & Preferences</h2>
-                  <div className="grid grid-cols-2 gap-4">
+            {step === 3 && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">What's your budget?</h2>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white/80">Min Price</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Min Price</label>
                       <input
                         type="number"
                         value={formData.priceMin}
@@ -270,13 +267,13 @@ export default function Signup() {
                             e.stopPropagation();
                           }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none"
-                        placeholder="30000"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        placeholder="$30,000"
                         data-testid="input-price-min"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-white/80">Max Price</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Max Price</label>
                       <input
                         type="number"
                         value={formData.priceMax}
@@ -287,94 +284,96 @@ export default function Signup() {
                             e.stopPropagation();
                           }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-white/15 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/40 outline-none"
-                        placeholder="80000"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        placeholder="$80,000"
                         data-testid="input-price-max"
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-3 text-white/80">Fuel Type</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {fuelTypes.map((fuel) => (
-                        <button
-                          key={fuel}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, fuelType: fuel })}
-                          className={`px-4 py-3 rounded-xl transition-all ${
-                            formData.fuelType === fuel
-                              ? "bg-white text-black"
-                              : "bg-white/10 text-white/70 hover:text-white hover:bg-white/20"
-                          }`}
-                          data-testid={`fuel-${fuel.toLowerCase()}`}
-                        >
-                          {fuel}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-3">Fuel preference</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {fuelTypes.map((fuel) => (
+                      <button
+                        key={fuel}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, fuelType: fuel })}
+                        className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                          formData.fuelType === fuel
+                            ? "bg-indigo-600 text-white"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                        data-testid={`fuel-${fuel.toLowerCase()}`}
+                      >
+                        {fuel}
+                      </button>
+                    ))}
                   </div>
-                </motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Navigation buttons */}
+            <div className="flex gap-3 mt-8">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="px-4 py-3 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2"
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
               )}
+              {step < 3 ? (
+                <motion.button
+                  type="button"
+                  onClick={handleNext}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-indigo-700 transition-all pressable"
+                  data-testid="button-next"
+                >
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </motion.button>
+              ) : (
+                <motion.button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (step === 3) {
+                      signupMutation.mutate();
+                    }
+                  }}
+                  disabled={signupMutation.isPending}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all pressable"
+                  data-testid="button-signup"
+                >
+                  {signupMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
+                </motion.button>
+              )}
+            </div>
+          </form>
 
-              <div className="flex gap-3 mt-8">
-                {step > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setStep(step - 1)}
-                    className="px-6 py-3 rounded-xl border border-white/15 text-white/80 hover:bg-white/10 transition-all pressable"
-                    data-testid="button-back"
-                  >
-                    Back
-                  </button>
-                )}
-                {step < 3 ? (
-                  <motion.button
-                    type="button"
-                    onClick={handleNext}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="flex-1 px-6 py-3 bg-white text-black rounded-xl flex items-center justify-center gap-2 shadow-xl pressable"
-                    data-testid="button-next"
-                  >
-                    Next <ArrowRight className="w-4 h-4" />
-                  </motion.button>
-                ) : (
-                  <motion.button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (step === 3) {
-                        signupMutation.mutate();
-                      }
-                    }}
-                    disabled={signupMutation.isPending}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="flex-1 px-6 py-3 bg-white text-black rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 pressable"
-                    data-testid="button-signup"
-                  >
-                    {signupMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </motion.button>
-                )}
-              </div>
-            </form>
-
-            <p className="text-center mt-6 text-sm text-white/60">
-              Already have an account?{" "}
-              <a href="/login" className="text-white font-medium hover:underline">
-                Log in
-              </a>
-            </p>
-          </motion.div>
+          <p className="text-center mt-6 text-sm text-gray-500">
+            Already have an account?{" "}
+            <a href="/login" className="text-indigo-600 font-medium hover:underline">
+              Log in
+            </a>
+          </p>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }

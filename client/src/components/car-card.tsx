@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Phone, MapPin, Store } from "lucide-react";
+import { ArrowRight, MapPin, Building2, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import type { CarResult } from "@/lib/api";
 
 interface CarCardProps {
@@ -8,138 +9,186 @@ interface CarCardProps {
 }
 
 export function CarCard({ car, index }: CarCardProps) {
-  const imageUrl = car.images?.[0] || "https://images.unsplash.com/photo-1555215695-3004980adade?w=800";
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const images = car.images?.length ? car.images : ["https://images.unsplash.com/photo-1555215695-3004980adade?w=800"];
+  const imageUrl = images[currentImageIndex];
   
   const getDealerSearchUrl = () => {
-    if (car.sourceUrl) {
-      return car.sourceUrl;
-    }
-    if (car.url) {
-      return car.url;
-    }
+    if (car.sourceUrl) return car.sourceUrl;
+    if (car.url) return car.url;
     const dealerName = car.dealerName || car.dealership || "car dealership";
     const location = car.location || "";
     const searchQuery = encodeURIComponent(`${dealerName} ${location}`);
     return `https://www.google.com/search?q=${searchQuery}`;
   };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const matchScore = car.match || 95;
+  const matchColor = matchScore >= 90 ? 'text-green-600 bg-green-50 border-green-200' 
+                   : matchScore >= 70 ? 'text-amber-600 bg-amber-50 border-amber-200'
+                   : 'text-gray-600 bg-gray-50 border-gray-200';
   
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
       viewport={{ once: true }}
-      className="group relative bg-white/5 backdrop-blur-2xl rounded-3xl overflow-hidden border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.45)] hover:-translate-y-2 transition-all duration-500"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group relative bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all duration-300 card-hover"
       data-testid={`card-car-${car.id}`}
     >
-      <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-20 transition duration-500 bg-gradient-to-br from-white/15 to-transparent" />
-      <div className="aspect-video sm:aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-[#0f0a1d] via-[#0e0816] to-[#120b21]">
+      {/* Image Section */}
+      <div className="aspect-[4/3] overflow-hidden relative bg-gray-100">
         <motion.img
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.6 }}
+          key={currentImageIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
           src={imageUrl}
           alt={`${car.brand} ${car.model}`}
           className="w-full h-full object-cover"
           data-testid={`img-car-${car.id}`}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
         
-        <div className="absolute top-4 left-4 bg-black backdrop-blur-md px-4 py-2 rounded-full text-xs font-black text-white shadow-2xl shadow-black/40 border border-white/30" data-testid={`badge-match-${car.id}`}>
-          {car.match || 95}% Match
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+        
+        {/* Image navigation */}
+        {images.length > 1 && isHovered && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-700" />
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-700" />
+            </button>
+          </>
+        )}
+        
+        {/* Image dots */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.slice(0, 5).map((_, i) => (
+              <button
+                key={i}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCurrentImageIndex(i);
+                }}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  i === currentImageIndex 
+                    ? 'bg-white w-4' 
+                    : 'bg-white/60 hover:bg-white/80'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Match badge */}
+        <div 
+          className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold border ${matchColor}`}
+          data-testid={`badge-match-${car.id}`}
+        >
+          <span className="flex items-center gap-1">
+            <Star className="w-3 h-3" />
+            {matchScore}% Match
+          </span>
         </div>
       </div>
 
-      <div className="p-6 sm:p-8 relative z-10">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
-          <div>
-            <h3 className="text-xs text-white/50 font-semibold mb-2 uppercase tracking-wider" data-testid={`text-brand-${car.id}`}>{car.brand}</h3>
-            <h2 className="text-2xl font-display font-bold text-white leading-tight" data-testid={`text-model-${car.id}`}>
+      {/* Content Section */}
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex justify-between items-start gap-4 mb-4">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1" data-testid={`text-brand-${car.id}`}>
+              {car.brand}
+            </p>
+            <h3 className="text-lg font-bold text-gray-900 truncate" data-testid={`text-model-${car.id}`}>
               {car.model}
-            </h2>
+            </h3>
             {car.year && (
-              <p className="text-sm text-white/60 mt-1 font-medium" data-testid={`text-year-${car.id}`}>{car.year}</p>
+              <p className="text-sm text-gray-500 mt-0.5" data-testid={`text-year-${car.id}`}>{car.year}</p>
             )}
           </div>
-          <div className="text-right bg-white/10 text-white px-5 py-2.5 rounded-2xl shadow-lg shadow-black/40 border border-white/15">
-            <p className="text-lg font-black" data-testid={`text-price-${car.id}`}>{car.price}</p>
+          <div className="text-right shrink-0">
+            <p className="text-xl font-bold text-gray-900" data-testid={`text-price-${car.id}`}>
+              {car.price}
+            </p>
             {car.mileage && (
-              <p className="text-xs text-white/60 mt-0.5 font-semibold" data-testid={`text-mileage-${car.id}`}>{car.mileage}</p>
+              <p className="text-xs text-gray-500 mt-0.5" data-testid={`text-mileage-${car.id}`}>{car.mileage}</p>
             )}
           </div>
         </div>
 
-        {car.specs && (
-          <div className="flex justify-between items-center py-6 border-y border-white/10 mb-6 bg-white/5 rounded-2xl">
-            {car.specs.acceleration && (
-              <div className="text-center px-2">
-                <div className="text-[10px] text-white/50 mb-1 uppercase tracking-widest font-bold">0-60</div>
-                <div className="font-bold text-white text-sm" data-testid={`spec-acceleration-${car.id}`}>{car.specs.acceleration}</div>
-              </div>
-            )}
-            {car.specs.topSpeed && (
-              <>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="text-center px-2">
-                  <div className="text-[10px] text-white/50 mb-1 uppercase tracking-widest font-bold">Top Speed</div>
-                  <div className="font-bold text-white text-sm" data-testid={`spec-topspeed-${car.id}`}>{car.specs.topSpeed}</div>
-                </div>
-              </>
-            )}
-            {car.specs.power && (
-              <>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="text-center px-2">
-                  <div className="text-[10px] text-white/50 mb-1 uppercase tracking-widest font-bold">Power</div>
-                  <div className="font-bold text-white text-sm" data-testid={`spec-power-${car.id}`}>{car.specs.power}</div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
+        {/* Location */}
         {car.location && (
-          <p className="text-sm text-white/60 mb-4" data-testid={`text-location-${car.id}`}>📍 {car.location}</p>
-        )}
-
-        {(car.dealerName || car.dealerPhone || car.dealerAddress) && (
-          <div className="mb-6 p-5 bg-white/5 text-white rounded-2xl border border-white/10 shadow-inner shadow-black/40 backdrop-blur-xl" data-testid={`dealer-info-${car.id}`}>
-            <h4 className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-4">Dealer Information</h4>
-            <div className="space-y-3">
-              {car.dealerName && (
-                <div className="flex items-start gap-3" data-testid={`dealer-name-${car.id}`}>
-                  <Store className="w-4 h-4 text-white/60 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-white font-semibold">{car.dealerName}</span>
-                </div>
-              )}
-              {car.dealerAddress && (
-                <div className="flex items-start gap-3" data-testid={`dealer-address-${car.id}`}>
-                  <MapPin className="w-4 h-4 text-white/60 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-white/80">{car.dealerAddress}</span>
-                </div>
-              )}
-              {car.dealerPhone && (
-                <div className="flex items-start gap-3" data-testid={`dealer-phone-${car.id}`}>
-                  <Phone className="w-4 h-4 text-white/60 mt-0.5 flex-shrink-0" />
-                  <a 
-                    href={`tel:${car.dealerPhone}`} 
-                    className="text-sm text-white hover:text-white/80 transition-colors font-medium"
-                  >
-                    {car.dealerPhone}
-                  </a>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4" data-testid={`text-location-${car.id}`}>
+            <MapPin className="w-4 h-4 text-gray-400" />
+            <span className="truncate">{car.location}</span>
           </div>
         )}
 
+        {/* Dealer info */}
+        {car.dealerName && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 pb-4 border-b border-gray-100" data-testid={`dealer-name-${car.id}`}>
+            <Building2 className="w-4 h-4 text-gray-400" />
+            <span className="truncate">{car.dealerName}</span>
+          </div>
+        )}
+
+        {/* Features */}
+        {car.features && car.features.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {car.features.slice(0, 3).map((feature, i) => (
+              <span 
+                key={i}
+                className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md"
+              >
+                {feature}
+              </span>
+            ))}
+            {car.features.length > 3 && (
+              <span className="px-2 py-1 text-gray-400 text-xs">
+                +{car.features.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* CTA Button */}
         <a 
           href={getDealerSearchUrl()} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="w-full py-4 bg-white text-black rounded-2xl transition-all duration-300 font-black text-sm flex items-center justify-center gap-2 group/btn shadow-2xl shadow-black/40 pressable" 
+          className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-2 group/btn pressable" 
           data-testid={`button-details-${car.id}`}
         >
-          Find Dealer <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+          Find Dealer 
+          <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
         </a>
       </div>
     </motion.div>

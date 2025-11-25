@@ -138,7 +138,10 @@ def persist_search_results(
                 "price": car_data.get("price"),
                 "location": car_data.get("location"),
                 "dealer": car_data.get("dealer"),
-                "images": car_data.get("images", [])[:3],
+                "images": car_data.get("images", [])[:5],
+                "description": car_data.get("description"),
+                "features": car_data.get("features", [])[:5],
+                "source_url": car_data.get("source_url"),
             },
             active=True,
             created_at=datetime.utcnow()
@@ -216,7 +219,10 @@ def load_cars_from_search(db: Session, search_id: int) -> List[CarResponse]:
             priceNumeric=price_num,
             location=data.get("location"),
             dealerName=data.get("dealer"),
-            images=data.get("images", [])[:3],
+            images=data.get("images", [])[:5],
+            description=data.get("description"),
+            features=data.get("features", []),
+            sourceUrl=data.get("source_url"),
             match=int((sr.match_score or 0) * 100)
         ))
     

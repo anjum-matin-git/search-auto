@@ -87,13 +87,22 @@ class AuthService:
         if initial_preferences:
             from db.repositories import UserPreferenceRepository
             pref_repo = UserPreferenceRepository(self.db)
+            
+            # Handle both "carTypes" (frontend) and "types" (backend) field names
+            car_types = initial_preferences.get("carTypes") or initial_preferences.get("types", [])
+            
+            # Handle both "priceRange" (frontend) and "price_min"/"price_max" (backend)
+            price_range = initial_preferences.get("priceRange", {})
+            price_min = initial_preferences.get("price_min") or (price_range.get("min") if isinstance(price_range, dict) else None)
+            price_max = initial_preferences.get("price_max") or (price_range.get("max") if isinstance(price_range, dict) else None)
+            
             pref_repo.create_or_update(
                 user_id=user.id,
                 preferences=initial_preferences,
                 preferred_brands=initial_preferences.get("brands", []),
-                preferred_types=initial_preferences.get("types", []),
-                price_range_min=initial_preferences.get("price_min"),
-                price_range_max=initial_preferences.get("price_max")
+                preferred_types=car_types,
+                price_range_min=price_min,
+                price_range_max=price_max
             )
         
         return self._serialize_user(user)

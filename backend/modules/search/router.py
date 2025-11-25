@@ -292,10 +292,16 @@ def build_user_context(user_id: int, user: User, db: Session) -> dict:
             }
         elif user.initial_preferences:
             ip = user.initial_preferences
+            # Handle both "carTypes" (frontend) and "types" (backend)
+            car_types = ip.get("carTypes") or ip.get("types", [])
+            # Handle both "priceRange" and direct price fields
+            price_range = ip.get("priceRange", {})
+            budget = ip.get("price_max") or (price_range.get("max") if isinstance(price_range, dict) else None)
+            
             context["preferences"] = {
                 "preferred_brands": ip.get("brands") or [],
-                "preferred_types": ip.get("types") or [],
-                "budget": ip.get("price_max")
+                "preferred_types": car_types,
+                "budget": budget
             }
     except Exception as e:
         logger.warning("preferences_load_failed", user_id=user_id, error=str(e))

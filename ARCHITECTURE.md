@@ -8,7 +8,7 @@ World-class AI-powered car search platform with **autonomous ReAct agent**.
 ### Backend (Python/FastAPI)
 - **Framework**: FastAPI with async/await
 - **Database**: PostgreSQL (Railway) with SQLAlchemy ORM
-- **AI**: OpenAI GPT-5 for reasoning + LangGraph ReAct Agent
+- **AI**: Claude (Anthropic) for reasoning + LangGraph ReAct Agent
 - **Search**: Auto.dev API for real car listings
 - **Auth**: JWT-based authentication
 - **Payments**: Stripe integration
@@ -33,11 +33,15 @@ User Query → ReAct Agent → Intelligently Uses Tools → Returns Results
 - Adapts to different scenarios
 - Provides conversational responses
 
-**4 Powerful Tools:**
-1. `extract_car_features` - Parse natural language queries
-2. `search_car_listings` - Find real cars from Auto.dev
-3. `filter_cars_by_criteria` - Refine results
-4. `rank_cars_by_relevance` - Sort by best match
+**Core Tools:**
+1. `search_car_listings` - Search Auto.dev API with intelligent filtering
+2. `save_search_results` - Persist results to database
+3. `send_message_to_user` - Post conversational responses
+
+**Hybrid Architecture:**
+- Router handles feature extraction and API calls for reliability
+- Agent focuses on conversational responses and context management
+- Query rewriting for follow-up questions ("show me more")
 
 ### 2. Repository Pattern
 All database operations abstracted through repository classes:
@@ -54,8 +58,8 @@ Business logic separated from routes:
 
 ### 4. Clean API Integration
 All external APIs centralized in `integrations/`:
-- `AutoDevAPI` - car listings
-- `OpenAIClient` - NLU and embeddings
+- `AutoDevAPI` - car listings from Auto.dev
+- `ClaudeClient` - AI reasoning and feature extraction
 - `StripeClient` - payments
 
 ## Key Features

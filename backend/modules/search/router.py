@@ -170,6 +170,15 @@ def persist_search_results(
         db.add(conversation)
         db.flush()
     
+    # Add user's search query as a message
+    db.add(ConversationMessage(
+        conversation_id=conversation.id,
+        role="user",
+        content=query,
+        created_at=datetime.utcnow()
+    ))
+    
+    # Add assistant's summary response
     db.add(ConversationMessage(
         conversation_id=conversation.id,
         role="assistant",

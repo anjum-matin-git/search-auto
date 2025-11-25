@@ -4,13 +4,14 @@ Simplified, intelligent search powered by LangGraph.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List, Tuple
+import json
 
 from db.base import get_db
 from db.models import User
 from db.repositories import UserRepository, UserPreferenceRepository, SearchRepository
 from core.jwt_auth import get_current_user_jwt
-from modules.search.schemas import SearchRequest, SearchResponse
+from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
 from agents.react_agent import car_search_agent
 from services.credits_service import CreditsService
 from core.logging import get_logger
@@ -18,6 +19,64 @@ from core.exceptions import AppException
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/search", tags=["search"])
+
+
+def _extract_cars_from_search(db: Session, user_id: int, query: str, search_id: Optional[int] = None) -> Tuple[List[CarResponse], Optional[int]]:
+    """Helper to extract cars from the most recent search."""
+    car_results = []
+    found_search_id = None
+    
+    try:
+        from db.models import Search, SearchResult, Car
+        
+        latest_search = None
+        if search_id:
+            latest_search = db.query(Search).filter(Search.id == search_id).first()
+        
+        if not latest_search:
+            # Fallback to query matching
+            latest_search = db.query(Search).filter(
+                Search.user_id == user_id,
+                Search.query == query
+            ).order_by(Search.created_at.desc()).first()
+        
+        if latest_search:
+            found_search_id = latest_search.id
+            
+            # Get cars that the agent saved
+            search_results = db.query(SearchResult).filter(
+                SearchResult.search_id == latest_search.id
+            ).order_by(SearchResult.rank).all()
+            
+            for sr in search_results:
+                car = db.query(Car).filter(Car.id == sr.car_id).first()
+                if car and car.car_data:
+                    data = car.car_data
+                    price_num = data.get("price", 0)
+                    price_str = f"${price_num:,}" if price_num else "$0"
+                    
+                    car_results.append(CarResponse(
+                        id=car.id,
+                        vin=data.get("vin"),
+                        brand=data.get("brand"),
+                        model=data.get("model"),
+                        year=data.get("year"),
+                        price=price_str,
+                        priceNumeric=price_num,
+                        location=data.get("location"),
+                        dealerName=data.get("dealer"),
+                        images=data.get("images", []),
+                        match=int(sr.match_score * 100) if sr.match_score else None
+                    ))
+            
+            logger.info("extracted_agent_results", search_id=found_search_id, count=len(car_results))
+        else:
+            logger.warning("no_search_saved_by_agent", query=query, user_id=user_id, search_id=search_id)
+            
+    except Exception as e:
+        logger.error("failed_to_extract_results", error=str(e))
+        
+    return car_results, found_search_id
 
 
 @router.post("", response_model=SearchResponse)
@@ -64,59 +123,32 @@ async def search_cars_with_agent(
     # Check if there was an error in the agent
     has_error = "error" in result
     
-    # Extract what the agent saved - it should have used save_search_results tool
-    car_results = []
-    search_id = None
+    # Extract search_id from tool outputs if available
+    search_id_from_tool = None
+    messages = result.get("messages", [])
+    for msg in reversed(messages):
+        if msg.type == "tool" and getattr(msg, "name", "") == "save_search_results":
+            try:
+                content = msg.content
+                if isinstance(content, str):
+                    data = json.loads(content)
+                else:
+                    data = content
+                
+                if isinstance(data, dict) and data.get("search_id"):
+                    search_id_from_tool = data.get("search_id")
+                    logger.info("found_search_id_in_tool_output", search_id=search_id_from_tool)
+                    break
+            except Exception as e:
+                logger.warning("failed_to_parse_tool_output", error=str(e))
     
-    try:
-        from db.models import Search, SearchResult, Car
-        from modules.search.schemas import CarResponse
-        
-        # Get the most recent search that the agent saved
-        latest_search = db.query(Search).filter(
-            Search.user_id == user_id,
-            Search.query == request.query
-        ).order_by(Search.created_at.desc()).first()
-        
-        if latest_search:
-            search_id = latest_search.id
-            
-            # Get cars that the agent saved
-            search_results = db.query(SearchResult).filter(
-                SearchResult.search_id == latest_search.id
-            ).order_by(SearchResult.rank).all()
-            
-            for sr in search_results:
-                car = db.query(Car).filter(Car.id == sr.car_id).first()
-                if car and car.car_data:
-                    data = car.car_data
-                    price_num = data.get("price", 0)
-                    price_str = f"${price_num:,}" if price_num else "$0"
-                    
-                    car_results.append(CarResponse(
-                        id=car.id,
-                        vin=data.get("vin"),
-                        brand=data.get("brand"),
-                        model=data.get("model"),
-                        year=data.get("year"),
-                        price=price_str,
-                        priceNumeric=price_num,
-                        location=data.get("location"),
-                        dealerName=data.get("dealer"),
-                        images=data.get("images", []),
-                        match=int(sr.match_score * 100) if sr.match_score else None
-                    ))
-            
-            logger.info("extracted_agent_results", search_id=search_id, count=len(car_results))
-        else:
-            logger.warning("no_search_saved_by_agent", query=request.query, user_id=user_id)
-        
-    except Exception as e:
-        logger.error("failed_to_extract_results", error=str(e))
+    # Extract results using search_id (preferred) or query fallback
+    used_query = result.get("query", request.query)
+    car_results, search_id = _extract_cars_from_search(db, user_id, used_query, search_id_from_tool)
     
     return SearchResponse(
         success=not has_error,
-        query=request.query,
+        query=used_query,
         count=len(car_results),
         results=car_results,
         search_id=search_id,
@@ -157,7 +189,7 @@ def _build_user_context(user_id: int, user: User, db: Session) -> dict:
     return context
 
 
-@router.get("/personalized")
+@router.get("/personalized", response_model=SearchResponse)
 async def get_personalized_recommendations(
     current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
@@ -186,11 +218,37 @@ async def get_personalized_recommendations(
             query = f"Show me {brands} cars that match my preferences"
     
     # Run agent
+    # Note: We run search again to get fresh results? 
+    # Or should we just return the saved results if it was recent?
+    # For now, let's re-run search to ensure freshness and correctness
     result = await car_search_agent.search(query, user_context, db)
     
-    return {
-        "success": True,
-        "recommendations": result["response"],
-        "query": query
-    }
+    used_query = result.get("query", query)
+    
+    # Extract search_id from tool outputs if available (same logic as search endpoint)
+    search_id_from_tool = None
+    messages = result.get("messages", [])
+    for msg in reversed(messages):
+        if msg.type == "tool" and getattr(msg, "name", "") == "save_search_results":
+            try:
+                content = msg.content
+                if isinstance(content, str):
+                    data = json.loads(content)
+                else:
+                    data = content
+                if isinstance(data, dict) and data.get("search_id"):
+                    search_id_from_tool = data.get("search_id")
+                    break
+            except:
+                pass
 
+    car_results, search_id = _extract_cars_from_search(db, user_id, used_query, search_id_from_tool)
+    
+    return SearchResponse(
+        success=True,
+        query=used_query,
+        count=len(car_results),
+        results=car_results,
+        search_id=search_id,
+        message=result["response"]
+    )

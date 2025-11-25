@@ -162,8 +162,8 @@ async def search_car_listings(
             "mileage": car.get("mileage"),
             "location": car.get("location"),
             "dealer": car.get("dealer_name") or car.get("dealer"),
-            "description": car.get("description"),
-            "features": car.get("features", [])[:3],
+            "description": (car.get("description") or "")[:200],  # Truncate for LLM performance
+            "features": car.get("features", [])[:5],  # Limit features
             "vin": car.get("vin"),
             "images": car.get("images", []),
             "sourceUrl": car.get("sourceUrl")
@@ -226,14 +226,28 @@ def save_search_results(
             db.add(conversation)
             db.flush()
         
-        # Save user's query as a message
-        user_message = ConversationMessage(
-            conversation_id=conversation.id,
-            role="user",
-            content=query,
-            created_at=datetime.utcnow()
-        )
-        db.add(user_message)
+        # Check for duplicate user message (if the last message is from user and matches query)
+        last_message = db.query(ConversationMessage).filter(
+            ConversationMessage.conversation_id == conversation.id
+        ).order_by(ConversationMessage.created_at.desc()).first()
+        
+        should_save_user_msg = True
+        if last_message and last_message.role == "user":
+            # Simple check: if the last user message contains the current query (case-insensitive)
+            # This prevents saving "red mazda" again if user just typed "I want a red mazda"
+            if query.lower().strip() in last_message.content.lower().strip():
+                should_save_user_msg = False
+                logger.info("skipping_duplicate_user_message", query=query)
+        
+        if should_save_user_msg:
+            # Save user's query as a message
+            user_message = ConversationMessage(
+                conversation_id=conversation.id,
+                role="user",
+                content=query,
+                created_at=datetime.utcnow()
+            )
+            db.add(user_message)
         
         # Save assistant's response
         assistant_message = ConversationMessage(
@@ -258,11 +272,6 @@ def save_search_results(
         for car_data in results:
             try:
                 vin = car_data.get("vin")
-                if not vin:
-                    # Generate temporary VIN if missing to ensure display
-                    import uuid
-                    vin = f"TEMP-{uuid.uuid4().hex[:10]}"
-                    car_data["vin"] = vin
                 
                 # Check if car already exists (skip for now)
                 existing_car = None

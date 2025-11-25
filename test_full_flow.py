@@ -77,7 +77,15 @@ def main():
         query_used = data.get("query")
         print(f"✅ Auto Search Successful in {elapsed:.1f}s")
         print(f"   Query Used: '{query_used}'")
-        print(f"   Message: {data.get('recommendations')[:100]}...")
+        msg = data.get('message') or data.get('recommendations') or ""
+        print(f"   Message: {msg[:100]}...")
+        
+        # Verify cars are returned
+        count = data.get("count", 0)
+        if count > 0:
+             print(f"   ✅ Verified: Returned {count} personalized cars")
+        else:
+             print(f"   ⚠️ Warning: No cars returned for preferences")
         
         # Verify it used preferences (BMW/Audi)
         if "BMW" in query_used or "Audi" in query_used:

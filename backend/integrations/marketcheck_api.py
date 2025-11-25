@@ -1,14 +1,16 @@
 """
 MarketCheck API integration for car listings.
-Provides access to real dealer inventory with vehicle data and images.
+
+Provides access to real US dealer inventory with vehicle data and images.
+Note: MarketCheck only has US inventory. For Canadian users, we search
+nearby US border states.
+
 Documentation: https://docs.marketcheck.com/docs/get-started/api
 """
 from typing import List, Dict, Any, Optional
 from urllib.parse import quote_plus
-import math
 
 import httpx
-import pgeocode
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
@@ -17,37 +19,25 @@ from core.logging import get_logger
 logger = get_logger(__name__)
 
 
-CANADIAN_CITY_POSTALS = {
-    "vancouver": "V5K",
-    "toronto": "M5H",
-    "montreal": "H1A",
-    "calgary": "T2P",
-    "ottawa": "K1A",
-    "edmonton": "T5J",
-    "winnipeg": "R3C",
-    "mississauga": "L5B",
-    "victoria": "V8W",
-    "hamilton": "L8P",
-}
-
-
 class MarketCheckAPI:
-    """Client for MarketCheck Listings API - real dealer inventory."""
+    """
+    Client for MarketCheck Listings API.
+    
+    Provides access to real dealer inventory across the United States.
+    For Canadian users, searches nearby US border states.
+    """
+    
+    BASE_URL = "https://api.marketcheck.com/v2/search/car/active"
     
     def __init__(self):
+        """Initialize the MarketCheck API client."""
         self.api_key = settings.marketcheck_api_key
         if not self.api_key:
-            logger.warning("marketcheck_no_key", message="MARKETCHECK_API_KEY not set")
+            logger.warning("marketcheck_api_key_missing")
             self.enabled = False
         else:
             self.enabled = True
-            self.base_url = "https://api.marketcheck.com/v2/search/car/active"
-            logger.info("marketcheck_client_initialized")
-        # Geocoders for CA/US lookups
-        self.geocoders = {
-            "CA": pgeocode.Nominatim("ca"),
-            "US": pgeocode.Nominatim("us"),
-        }
+            logger.info("marketcheck_client_ready")
     
     @retry(
         stop=stop_after_attempt(3),
@@ -75,7 +65,7 @@ class MarketCheckAPI:
             
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(
-                    self.base_url,
+                    self.BASE_URL,
                     params=params
                 )
                 response.raise_for_status()
@@ -94,11 +84,26 @@ class MarketCheckAPI:
             return []
     
     def _build_api_params(self, query_params: Dict[str, Any]) -> Dict[str, Any]:
-        """Convert our query params to MarketCheck API format."""
+        """
+        Build MarketCheck API request parameters.
+        
+        MarketCheck is a US-focused API. For location filtering:
+        - US searches: Use zip code with radius (miles)
+        - Canadian searches: Use state filter for nearby US states
+        
+        Args:
+            query_params: Search parameters from our application
+            
+        Returns:
+            Dict of parameters for MarketCheck API
+        """
         params = {
             "api_key": self.api_key,
+            "car_type": "used",
+            "seller_type": "dealer",
         }
         
+        # Vehicle filters
         if query_params.get("brand"):
             params["make"] = query_params["brand"]
         
@@ -117,23 +122,131 @@ class MarketCheckAPI:
         if query_params.get("year_max"):
             params["year_max"] = query_params["year_max"]
         
-        # MarketCheck supports car_type parameter
-        params["car_type"] = "used"  # Default to used cars
-        
-        # NOTE: MarketCheck location filtering (zip, lat/long, radius) seems to 
-        # break search results - returns 0 results even with valid params.
-        # MarketCheck has nationwide US inventory, so we skip location filtering
-        # and let the frontend/user see results from across the country.
-        # This can be revisited if MarketCheck fixes their location API.
-        
-        # Optional: Add seller_type for dealer inventory only
-        params["seller_type"] = "dealer"
+        # Location filtering - MarketCheck only has US inventory
+        self._add_location_params(params, query_params)
         
         # Pagination
         params["rows"] = query_params.get("limit", 20)
-        params["start"] = (query_params.get("page", 1) - 1) * query_params.get("limit", 20)
+        page = query_params.get("page", 1)
+        params["start"] = (page - 1) * params["rows"]
         
         return params
+    
+    def _add_location_params(self, params: Dict[str, Any], query_params: Dict[str, Any]) -> None:
+        """
+        Add location parameters for geographic filtering.
+        
+        MarketCheck supports: zip, city, state, latitude/longitude with radius.
+        Radius is in miles.
+        """
+        country = (query_params.get("country") or "US").upper()
+        postal_code = query_params.get("postal_code", "")
+        location = query_params.get("location", "")
+        radius_miles = query_params.get("radius_km", 100)  # Default 100 miles
+        
+        # For US searches with valid ZIP code
+        if country == "US" and postal_code:
+            clean_zip = postal_code.strip().replace(" ", "")
+            if clean_zip.isdigit() and len(clean_zip) == 5:
+                params["zip"] = clean_zip
+                params["radius"] = radius_miles
+                logger.debug("marketcheck_location_zip", zip=clean_zip, radius=radius_miles)
+                return
+        
+        # For Canadian searches, use nearby US border states
+        if country == "CA":
+            border_state = self._get_us_border_state_for_canada(location, postal_code)
+            if border_state:
+                params["state"] = border_state
+                logger.debug("marketcheck_location_border_state", state=border_state)
+                return
+        
+        # Try city/state from location string
+        if location:
+            location_clean = location.strip()
+            # Check if it's a US state abbreviation or name
+            us_state = self._extract_us_state(location_clean)
+            if us_state:
+                params["state"] = us_state
+                logger.debug("marketcheck_location_state", state=us_state)
+                return
+            # Otherwise use city filter
+            params["city"] = location_clean
+            logger.debug("marketcheck_location_city", city=location_clean)
+            return
+        
+        # No location specified - return nationwide results
+        logger.debug("marketcheck_location_nationwide")
+    
+    def _get_us_border_state_for_canada(self, location: str, postal_code: str) -> Optional[str]:
+        """
+        Map Canadian locations to nearby US border states for search.
+        
+        Returns US state code for the closest border state.
+        """
+        location_lower = (location or "").lower()
+        postal_prefix = (postal_code or "").upper()[:1]
+        
+        # Map Canadian regions to nearby US states
+        canada_to_us_state = {
+            # British Columbia -> Washington
+            "vancouver": "WA", "victoria": "WA", "bc": "WA",
+            # Alberta -> Montana
+            "calgary": "MT", "edmonton": "MT", "alberta": "MT",
+            # Ontario -> Michigan/New York
+            "toronto": "NY", "ottawa": "NY", "ontario": "MI",
+            # Quebec -> New York/Vermont
+            "montreal": "NY", "quebec": "VT",
+            # Manitoba -> North Dakota
+            "winnipeg": "ND", "manitoba": "ND",
+        }
+        
+        for city, state in canada_to_us_state.items():
+            if city in location_lower:
+                return state
+        
+        # Fallback by postal code prefix
+        postal_to_state = {
+            "V": "WA",  # BC
+            "T": "MT",  # Alberta
+            "M": "NY",  # Toronto
+            "K": "NY",  # Ottawa
+            "H": "NY",  # Montreal
+            "R": "ND",  # Manitoba
+        }
+        
+        return postal_to_state.get(postal_prefix)
+    
+    def _extract_us_state(self, location: str) -> Optional[str]:
+        """Extract US state code from location string."""
+        us_states = {
+            "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+            "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+            "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+            "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+            "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+            "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+            "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+            "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+            "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+            "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+            "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+            "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+            "wisconsin": "WI", "wyoming": "WY"
+        }
+        
+        location_lower = location.lower().strip()
+        
+        # Check if it's a state abbreviation (2 letters)
+        if len(location_lower) == 2 and location_lower.upper() in us_states.values():
+            return location_lower.upper()
+        
+        # Check if it contains a state name
+        for state_name, code in us_states.items():
+            if state_name in location_lower:
+                return code
+        
+        return None
     
     def _convert_listings_to_car_format(self, listings: List[Dict], query_params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Convert MarketCheck listings to our car format."""
@@ -312,58 +425,3 @@ class MarketCheckAPI:
                 continue
         
         return cars
-
-    def _resolve_geo_targets(self, query_params: Dict[str, Any]) -> tuple[str, Optional[float], Optional[float], Optional[str]]:
-        """Return (country, lat, lon, postal) for API calls."""
-        country = (query_params.get("country") or "US").upper()
-        postal_code = query_params.get("postal_code")
-        location = query_params.get("location")
-        lat = lon = None
-        resolved_postal = None
-        
-        if postal_code:
-            lookup = self._postal_to_latlon(postal_code, country)
-            if lookup:
-                lat, lon, resolved_postal = lookup
-        
-        if (lat is None or lon is None) and location:
-            fallback_postal = self._city_to_postal(location, country)
-            if fallback_postal:
-                lookup = self._postal_to_latlon(fallback_postal, country)
-                if lookup:
-                    lat, lon, resolved_postal = lookup
-        
-        return country, lat, lon, resolved_postal
-
-    def _postal_to_latlon(self, postal_code: str, country: str) -> Optional[tuple[float, float, str]]:
-        """Use pgeocode to turn postal codes into coordinates."""
-        if not postal_code:
-            return None
-        cleaned = postal_code.replace(" ", "").upper()
-        if country == "CA":
-            cleaned = cleaned[:3]
-        geocoder = self.geocoders.get(country)
-        if not geocoder:
-            return None
-        record = geocoder.query_postal_code(cleaned)
-        try:
-            lat = float(record.latitude)
-            lon = float(record.longitude)
-        except (TypeError, ValueError, AttributeError):
-            return None
-        if math.isnan(lat) or math.isnan(lon):
-            return None
-        resolved = record.postal_code if getattr(record, "postal_code", None) else cleaned
-        return lat, lon, resolved
-
-    def _city_to_postal(self, location: str, country: str) -> Optional[str]:
-        """Map major Canadian cities to representative postal prefixes."""
-        if not location:
-            return None
-        location_lower = location.lower()
-        if country == "CA":
-            for city, postal in CANADIAN_CITY_POSTALS.items():
-                if city in location_lower:
-                    return postal
-        return None
-

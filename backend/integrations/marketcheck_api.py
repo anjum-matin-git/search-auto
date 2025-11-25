@@ -2,8 +2,7 @@
 MarketCheck API integration for car listings.
 
 Provides access to real US dealer inventory with vehicle data and images.
-Note: MarketCheck only has US inventory. For Canadian users, we search
-nearby US border states.
+US-only marketplace.
 
 Documentation: https://docs.marketcheck.com/docs/get-started/api
 """
@@ -24,7 +23,7 @@ class MarketCheckAPI:
     Client for MarketCheck Listings API.
     
     Provides access to real dealer inventory across the United States.
-    For Canadian users, searches nearby US border states.
+    US-only marketplace.
     """
     
     BASE_URL = "https://api.marketcheck.com/v2/search/car/active"
@@ -130,14 +129,16 @@ class MarketCheckAPI:
         if query_params.get("fuel_type"):
             params["fuel_type"] = query_params["fuel_type"]
         
-        # Location filtering - MarketCheck only has US inventory
-        self._add_location_params(params, query_params)
+        # Skip location filtering - search nationwide for better results
+        # MarketCheck returns 0 results with location params for many queries
+        # self._add_location_params(params, query_params)
         
         # Pagination
         params["rows"] = query_params.get("limit", 20)
         page = query_params.get("page", 1)
         params["start"] = (page - 1) * params["rows"]
         
+        logger.info("marketcheck_params", params={k: v for k, v in params.items() if k != "api_key"})
         return params
     
     def _add_location_params(self, params: Dict[str, Any], query_params: Dict[str, Any]) -> None:
@@ -257,10 +258,8 @@ class MarketCheckAPI:
         return None
     
     def _convert_listings_to_car_format(self, listings: List[Dict], query_params: Dict[str, Any] = None) -> List[Dict[str, Any]]:
-        """Convert MarketCheck listings to our car format."""
+        """Convert MarketCheck listings to our car format. US-only."""
         cars = []
-        target_country = (query_params or {}).get("country") or "US"
-        currency_prefix = "C$" if target_country == "CA" else "$"
         
         for listing in listings:
             try:
@@ -320,8 +319,7 @@ class MarketCheckAPI:
                 dealer_zip = dealer.get("zip") or ""
                 dealer_address = f"{dealer_street}, {dealer_city}, {dealer_state} {dealer_zip}".strip(", ")
                 
-                region_suffix = ", Canada" if target_country == "CA" else ""
-                full_location = f"{dealer_city}, {dealer_state}{region_suffix}" if dealer_city else f"{dealer_state}{region_suffix}" or "Unknown Location"
+                full_location = f"{dealer_city}, {dealer_state}" if dealer_city else dealer_state or "Unknown Location"
                 
                 # Extract features from listing and build data
                 features = []
@@ -381,8 +379,6 @@ class MarketCheckAPI:
                     logger.debug("marketcheck_using_dealer_url", vin=vin, url=source_url[:100] if len(source_url) > 100 else source_url)
                 
                 converted_price = raw_price
-                if target_country == "CA" and isinstance(raw_price, (int, float)):
-                    converted_price = int(raw_price * 1.35)
                 
                 logger.debug(
                     "marketcheck_listing_parsed",
@@ -423,9 +419,6 @@ class MarketCheckAPI:
                     "power": build.get("horsepower") or engine,
                     "mpg": mpg_str,
                 }
-                
-                if target_country == "CA" and isinstance(car["price"], (int, float)):
-                    car["display_currency"] = "CAD"
                 cars.append(car)
                 
             except Exception as e:

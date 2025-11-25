@@ -70,17 +70,20 @@ async def execute_search(
     if isinstance(body_type, list):
         body_type = body_type[0] if body_type else None
     
-    # Extract fuel type from features (electric, hybrid, diesel)
-    fuel_type = None
+    # Extract fuel type - check both direct field and features array
+    fuel_type = features.get("fuel_type")  # Claude now extracts this directly
     fuel_keywords = {"electric": "Electric", "hybrid": "Hybrid", "diesel": "Diesel", "ev": "Electric"}
     remaining_features = []
     for feat in (required_features or []):
         feat_lower = feat.lower()
         if feat_lower in fuel_keywords:
-            fuel_type = fuel_keywords[feat_lower]
+            if not fuel_type:  # Only set if not already set
+                fuel_type = fuel_keywords[feat_lower]
         else:
             remaining_features.append(feat)
     required_features = remaining_features
+    
+    logger.info("search_params", brand=brand, model=model, body_type=body_type, fuel_type=fuel_type)
     
     # Use preferences if no brand specified
     if not brand:

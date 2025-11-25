@@ -111,6 +111,14 @@ class AutoDevAPI:
         if query_params.get("year_min"):
             params["year_min"] = query_params["year_min"]
         
+        # Body type (SUV, Sedan, Truck, etc.)
+        if query_params.get("body_type"):
+            params["body_type"] = query_params["body_type"]
+        
+        # Fuel type (Electric, Hybrid, etc.)
+        if query_params.get("fuel_type"):
+            params["fuel_type"] = query_params["fuel_type"]
+        
         country, latitude, longitude, resolved_zip = self._resolve_geo_targets(query_params)
         params["country"] = country
         if query_params.get("location"):
@@ -228,15 +236,31 @@ class AutoDevAPI:
                 if trim:
                     description += f" {trim}"
                 
-                # Build a search URL to find the car at the dealer
-                # Auto.dev internal URLs don't work publicly, so we create a Google search
-                search_parts = [str(year), make, model, dealer_name]
-                if dealer_city:
-                    search_parts.append(dealer_city)
-                if dealer_state:
-                    search_parts.append(dealer_state)
-                search_query = " ".join(filter(None, search_parts))
-                source_url = f"https://www.google.com/search?q={quote_plus(search_query)}"
+                # Try to get dealer URL from listing
+                source_url = (
+                    listing.get("clickoffUrl") or
+                    listing.get("dealerUrl") or
+                    listing.get("listingUrl") or
+                    listing.get("vdpUrl") or
+                    listing.get("url") or
+                    None
+                )
+                
+                # Validate URL
+                if source_url and isinstance(source_url, str):
+                    source_url = source_url.strip()
+                    if not source_url.startswith(("http://", "https://")):
+                        source_url = None
+                
+                # Fallback to Google search if no dealer URL
+                if not source_url:
+                    search_parts = [str(year), make, model, dealer_name]
+                    if dealer_city:
+                        search_parts.append(dealer_city)
+                    if dealer_state:
+                        search_parts.append(dealer_state)
+                    search_query = " ".join(filter(None, search_parts))
+                    source_url = f"https://www.google.com/search?q={quote_plus(search_query)}"
                 
                 converted_price = raw_price
                 if target_country == "CA" and isinstance(raw_price, (int, float)):

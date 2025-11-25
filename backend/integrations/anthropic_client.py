@@ -86,16 +86,19 @@ class ClaudeClient:
 Return ONLY valid JSON with these optional fields:
 - brand: string (manufacturer name)
 - model: string (model name)
-- type: string (SUV, Sedan, Truck, etc.)
+- type: string (SUV, Sedan, Truck, Coupe, Convertible, Van, Wagon)
+- fuel_type: string (Electric, Hybrid, Diesel, Gasoline)
 - year_min: number
 - year_max: number
 - price_min: number
 - price_max: number
-- features: array of strings (colors, features like AWD, sunroof)
+- features: array of strings (colors, features like AWD, sunroof, leather)
 - location: string
 
 Rules:
 - "Range Rover" → brand: "Land Rover", model: "Range Rover"
+- "electric car" or "EV" → fuel_type: "Electric"
+- "hybrid" → fuel_type: "Hybrid"
 - Colors go in features array: ["red", "leather seats"]
 - "under $30k" → price_max: 30000
 - Return ONLY JSON, no explanation"""

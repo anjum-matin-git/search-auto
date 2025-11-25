@@ -123,7 +123,7 @@ async def search_car_listings(
     price_max: Optional[int] = None,
     location: Optional[str] = None,
     postal_code: Optional[str] = None,
-    country: str = "CA",
+    country: str = "US",
     body_type: Optional[str] = None,
     fuel_type: Optional[str] = None,
     required_features: Optional[List[str]] = None,
@@ -222,33 +222,8 @@ async def search_car_listings(
         except Exception as e:
             logger.warning("marketcheck_error", error=str(e))
     
-    # Fallback: Auto.dev when MarketCheck returns few/no results
-    if len(raw_cars) < limit:
-        autodev_api = AutoDevAPI()
-        if autodev_api.enabled:
-            try:
-                autodev_results = await autodev_api.search_listings(params)
-                autodev_added = 0
-                for car in autodev_results:
-                    vin = car.get("vin", "")
-                    key = f"{car.get('brand')}_{car.get('model')}_{car.get('year')}_{car.get('price')}"
-                    
-                    # Skip if already exists
-                    if vin and vin in existing_vins:
-                        continue
-                    if not vin and key in existing_keys:
-                        continue
-                    
-                    if vin:
-                        existing_vins.add(vin)
-                    else:
-                        existing_keys.add(key)
-                    raw_cars.append(car)
-                    autodev_added += 1
-                
-                logger.info("autodev_results", count=len(autodev_results), added=autodev_added)
-            except Exception as e:
-                logger.warning("autodev_error", error=str(e))
+    # Note: Auto.dev disabled - using MarketCheck only
+    # Auto.dev doesn't return dealer URLs and has less data
     
     logger.info("total_api_results", count=len(raw_cars))
     

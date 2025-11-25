@@ -8,7 +8,6 @@ import asyncio
 
 from langchain_core.tools import tool
 
-from integrations.autodev_api import AutoDevAPI
 from integrations.marketcheck_api import MarketCheckAPI
 from core.logging import get_logger
 
@@ -195,7 +194,6 @@ async def search_car_listings(
         params["fuel_type"] = fuel_type
     
     # Execute search - Using MarketCheck as primary source (better results)
-    # Auto.dev temporarily disabled in favor of MarketCheck
     raw_cars = []
     existing_vins = set()  # Track by VIN for deduplication
     existing_keys = set()  # Track by brand+model+year+price for cars without VIN
@@ -222,8 +220,6 @@ async def search_car_listings(
         except Exception as e:
             logger.warning("marketcheck_error", error=str(e))
     
-    # Note: Auto.dev disabled - using MarketCheck only
-    # Auto.dev doesn't return dealer URLs and has less data
     
     logger.info("total_api_results", count=len(raw_cars))
     

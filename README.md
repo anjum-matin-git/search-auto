@@ -6,7 +6,7 @@ AI-powered car search platform that helps users find their perfect vehicle using
 
 - **Natural Language Search**: Search for cars using everyday language ("red Mazda under $40k")
 - **AI-Powered Matching**: Claude AI extracts features and ranks results by relevance
-- **Real Listings**: Live inventory from Auto.dev API across US/Canada dealers
+- **Real Listings**: Live inventory from MarketCheck API across US dealers
 - **Personalized Results**: Recommendations based on user preferences and location
 - **Conversational Assistant**: Chat interface for follow-up questions and refinements
 - **Context Memory**: Remembers your last search for returning users
@@ -19,7 +19,7 @@ AI-powered car search platform that helps users find their perfect vehicle using
 - Node.js 18+
 - PostgreSQL database
 - Anthropic API key
-- Auto.dev API key
+- MarketCheck API key
 
 ### Backend Setup
 
@@ -56,7 +56,7 @@ npm run dev
 | `SECRET_KEY` | JWT signing secret |
 | `ANTHROPIC_API_KEY` | Claude API key |
 | `ANTHROPIC_MODEL` | Claude model (default: claude-sonnet-4-20250514) |
-| `AUTO_DEV_API_KEY` | Auto.dev API key for car listings |
+| `MARKETCHECK_API_KEY` | MarketCheck API key for car listings |
 | `STRIPE_SECRET_KEY` | Stripe API key (optional, for payments) |
 
 ## API Endpoints
@@ -84,17 +84,17 @@ npm run dev
                            │
                     ┌──────┴──────┐
                     ▼             ▼
-              ┌──────────┐  ┌──────────┐
-              │ Auto.dev │  │ Postgres │
-              │   API    │  │    DB    │
-              └──────────┘  └──────────┘
+              ┌─────────────┐  ┌──────────┐
+              │ MarketCheck │  │ Postgres │
+              │     API     │  │    DB    │
+              └─────────────┘  └──────────┘
 ```
 
 ### Key Components
 
 - **Router Layer**: Orchestrates search flow (feature extraction → API call → save results)
 - **Claude Client**: Handles AI feature extraction and summary generation
-- **Auto.dev API**: Fetches real car listings with location-based search
+- **MarketCheck API**: Fetches real US dealer inventory
 - **Repository Pattern**: Clean database access through repository classes
 
 ## Testing
@@ -123,7 +123,7 @@ python test_agent_queries.py
 **Backend**: FastAPI, SQLAlchemy, LangGraph, Anthropic Claude  
 **Frontend**: React, TypeScript, Tailwind CSS, Framer Motion  
 **Database**: PostgreSQL  
-**APIs**: Auto.dev, Stripe
+**APIs**: MarketCheck, Stripe
 
 ## License
 

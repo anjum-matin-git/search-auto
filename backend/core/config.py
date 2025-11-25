@@ -40,7 +40,6 @@ class Settings(BaseSettings):
     api_request_timeout_seconds: int = 30
     
     # Data Sources
-    auto_dev_api_key: str = Field(default="", alias="AUTO_DEV_API_KEY")
     marketcheck_api_key: str = Field(default="", alias="MARKETCHECK_API_KEY")
     
     # Agent Configuration

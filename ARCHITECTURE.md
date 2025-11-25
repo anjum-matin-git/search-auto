@@ -9,7 +9,7 @@ World-class AI-powered car search platform with **autonomous ReAct agent**.
 - **Framework**: FastAPI with async/await
 - **Database**: PostgreSQL (Railway) with SQLAlchemy ORM
 - **AI**: Claude (Anthropic) for reasoning + LangGraph ReAct Agent
-- **Search**: Auto.dev API for real car listings
+- **Search**: MarketCheck API for real US car listings
 - **Auth**: JWT-based authentication
 - **Payments**: Stripe integration
 
@@ -34,7 +34,7 @@ User Query → ReAct Agent → Intelligently Uses Tools → Returns Results
 - Provides conversational responses
 
 **Core Tools:**
-1. `search_car_listings` - Search Auto.dev API with intelligent filtering
+1. `search_car_listings` - Search MarketCheck API with intelligent filtering
 2. `save_search_results` - Persist results to database
 3. `send_message_to_user` - Post conversational responses
 
@@ -58,7 +58,7 @@ Business logic separated from routes:
 
 ### 4. Clean API Integration
 All external APIs centralized in `integrations/`:
-- `AutoDevAPI` - car listings from Auto.dev
+- `MarketCheckAPI` - real US car listings
 - `ClaudeClient` - AI reasoning and feature extraction
 - `StripeClient` - payments
 
@@ -88,7 +88,7 @@ All external APIs centralized in `integrations/`:
 2. ReAct agent analyzes the query
 3. Agent decides which tools to use:
    - Extract features (brand, model, price, location)
-   - Search Auto.dev API for real listings
+   - Search MarketCheck API for real US listings
    - Filter by criteria if needed
    - Rank by relevance
 4. Agent provides conversational response

@@ -124,6 +124,8 @@ async def search_car_listings(
     location: Optional[str] = None,
     postal_code: Optional[str] = None,
     country: str = "CA",
+    body_type: Optional[str] = None,
+    fuel_type: Optional[str] = None,
     required_features: Optional[List[str]] = None,
     user_query: Optional[str] = None,
     limit: int = 10,
@@ -142,6 +144,8 @@ async def search_car_listings(
         location: City or region
         postal_code: Postal/ZIP code
         country: Country code (CA or US)
+        body_type: Vehicle body type (SUV, Sedan, Truck, Coupe, etc.)
+        fuel_type: Fuel type (Electric, Hybrid, Gasoline, Diesel)
         required_features: Features to filter by (red, AWD, sunroof)
         user_query: Original query for relevance ranking
         limit: Max results to return
@@ -154,6 +158,8 @@ async def search_car_listings(
         "tool_search_start",
         brand=brand,
         model=model,
+        body_type=body_type,
+        fuel_type=fuel_type,
         price_max=price_max,
         features=required_features,
         page=page
@@ -183,6 +189,10 @@ async def search_car_listings(
         params["location"] = location
     if postal_code:
         params["postal_code"] = postal_code
+    if body_type:
+        params["body_type"] = body_type
+    if fuel_type:
+        params["fuel_type"] = fuel_type
     
     # Execute search - Using MarketCheck as primary source (better results)
     # Auto.dev temporarily disabled in favor of MarketCheck
@@ -212,9 +222,7 @@ async def search_car_listings(
         except Exception as e:
             logger.warning("marketcheck_error", error=str(e))
     
-    # Fallback: Auto.dev (commented out - using MarketCheck as primary)
-    # Uncomment below if you want to use Auto.dev as fallback or additional source
-    """
+    # Fallback: Auto.dev when MarketCheck returns few/no results
     if len(raw_cars) < limit:
         autodev_api = AutoDevAPI()
         if autodev_api.enabled:
@@ -241,7 +249,6 @@ async def search_car_listings(
                 logger.info("autodev_results", count=len(autodev_results), added=autodev_added)
             except Exception as e:
                 logger.warning("autodev_error", error=str(e))
-    """
     
     logger.info("total_api_results", count=len(raw_cars))
     

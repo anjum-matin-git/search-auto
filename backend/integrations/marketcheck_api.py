@@ -122,6 +122,14 @@ class MarketCheckAPI:
         if query_params.get("year_max"):
             params["year_max"] = query_params["year_max"]
         
+        # Body type (SUV, Sedan, Truck, etc.)
+        if query_params.get("body_type"):
+            params["body_type"] = query_params["body_type"]
+        
+        # Fuel type (Electric, Hybrid, Gasoline, Diesel)
+        if query_params.get("fuel_type"):
+            params["fuel_type"] = query_params["fuel_type"]
+        
         # Location filtering - MarketCheck only has US inventory
         self._add_location_params(params, query_params)
         

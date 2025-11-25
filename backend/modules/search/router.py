@@ -65,6 +65,23 @@ async def execute_search(
     location = user_context.get("location")
     postal_code = user_context.get("postal_code")
     
+    # Extract body type (SUV, Sedan, Truck, etc.)
+    body_type = features.get("type")
+    if isinstance(body_type, list):
+        body_type = body_type[0] if body_type else None
+    
+    # Extract fuel type from features (electric, hybrid, diesel)
+    fuel_type = None
+    fuel_keywords = {"electric": "Electric", "hybrid": "Hybrid", "diesel": "Diesel", "ev": "Electric"}
+    remaining_features = []
+    for feat in (required_features or []):
+        feat_lower = feat.lower()
+        if feat_lower in fuel_keywords:
+            fuel_type = fuel_keywords[feat_lower]
+        else:
+            remaining_features.append(feat)
+    required_features = remaining_features
+    
     # Use preferences if no brand specified
     if not brand:
         prefs = user_context.get("preferences", {})
@@ -80,6 +97,8 @@ async def execute_search(
         "price_max": price_max,
         "location": location,
         "postal_code": postal_code,
+        "body_type": body_type,
+        "fuel_type": fuel_type,
         "required_features": required_features if required_features else None,
         "user_query": query,
         "limit": settings.default_search_limit,

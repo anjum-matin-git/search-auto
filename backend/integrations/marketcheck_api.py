@@ -123,13 +123,21 @@ class MarketCheckAPI:
         # Location handling
         country, latitude, longitude, resolved_zip = self._resolve_geo_targets(query_params)
         
-        if resolved_zip:
+        # MarketCheck only accepts US ZIP codes (5 digits)
+        # For Canadian searches, use lat/long only
+        if resolved_zip and country == "US" and resolved_zip.isdigit() and len(resolved_zip) == 5:
             params["zip"] = resolved_zip
         
         if latitude is not None and longitude is not None:
             params["latitude"] = latitude
             params["longitude"] = longitude
             params["radius"] = query_params.get("radius_km", 150)
+        elif not params.get("zip"):
+            # Default to a US location if no geo data (avoid 422 errors)
+            # Los Angeles as fallback
+            params["latitude"] = 34.0522
+            params["longitude"] = -118.2437
+            params["radius"] = 200
         
         # Pagination
         params["rows"] = query_params.get("limit", 20)

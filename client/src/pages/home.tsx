@@ -6,13 +6,28 @@ import { CarCard } from "@/components/car-card";
 import { AuthModal } from "@/components/auth-modal";
 import { PaywallModal } from "@/components/paywall-modal";
 import { ChatSidebar } from "@/components/chat-sidebar";
+import { LandingContent } from "@/components/landing-content";
 import { searchCars, getPersonalizedCars, type CarResult, type SearchResponse } from "@/lib/api";
 import { getStoredUser } from "@/lib/auth-api";
 import { getConversation } from "@/lib/assistant-api";
-import { MapPin, Sparkles, Brain, Loader2, ArrowUp } from "lucide-react";
+import { MapPin, ArrowUp, Search, Car, Brain, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
+
+// Car SVG for loading animation
+function CarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M52 24H56C58.2091 24 60 22.2091 60 20V18C60 16.8954 59.1046 16 58 16H54L48 8H20L12 16H6C4.89543 16 4 16.8954 4 18V20C4 22.2091 5.79086 24 8 24H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="18" cy="24" r="4" stroke="currentColor" strokeWidth="2"/>
+      <circle cx="46" cy="24" r="4" stroke="currentColor" strokeWidth="2"/>
+      <path d="M22 16H42" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
 
 export default function Home() {
   const [results, setResults] = useState<CarResult[]>([]);
@@ -49,11 +64,11 @@ export default function Home() {
       setSearchCount(prev => prev + 1);
       
       if (data.count > 0) {
-        toast.success(`Found ${data.count} matching vehicles!`);
+        toast.success(`Found ${data.count} matching vehicles`);
       } else if (data.message) {
-        toast.info("Search complete! Check the assistant for details.");
+        toast.info("Search complete");
       } else {
-        toast.info("Search complete. No exact matches found.");
+        toast.info("No exact matches found");
       }
       
       if (!autoOpenedAssistant || data.message) {
@@ -69,7 +84,7 @@ export default function Home() {
       if (error.status === 402) {
         setShowPaywall(true);
       } else {
-        toast.error(error.message || "Search failed. Please try again.");
+        toast.error(error.message || "Search failed");
       }
     },
   });
@@ -91,7 +106,7 @@ export default function Home() {
   const locationLabel = user?.location || user?.postalCode || "your area";
   const personalizedResults = personalizedCarsQuery.data?.results || [];
   const displayResults = hasSearched ? results : personalizedResults;
-  const showResults = hasSearched || personalizedResults.length > 0;
+  const showResults = hasSearched || (personalizedResults.length > 0 && !!user);
   const isPersonalized = !hasSearched && personalizedResults.length > 0;
   const lastQueryLabel = isPersonalized ? personalizedCarsQuery.data?.query : undefined;
   
@@ -110,8 +125,15 @@ export default function Home() {
     }
   }, [chatEnabled, assistantOpen]);
 
+  const loadingSteps = [
+    { icon: Search, text: "Analyzing query", done: true },
+    { icon: Car, text: "Searching listings", done: true },
+    { icon: Brain, text: "AI matching", done: false },
+    { icon: Sparkles, text: "Ranking results", done: false },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-background text-foreground font-body">
       <ChatSidebar
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
@@ -128,50 +150,109 @@ export default function Home() {
         creditsRemaining={Math.max(0, 3 - searchCount)}
       />
       
-      <main className={`transition-all duration-300 ${assistantOpen && chatEnabled && !isMobile ? "lg:pr-[420px]" : ""}`}>
+      <main className={`transition-all duration-300 ${assistantOpen && chatEnabled && !isMobile ? "lg:pr-[450px]" : ""}`}>
         <Hero onSearch={handleSearch} isSearching={searchMutation.isPending} />
         
-        {/* Loading State */}
+        {/* Beautiful Loading State with Car Animation */}
         <AnimatePresence>
           {searchMutation.isPending && (
             <motion.section 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="py-20 container mx-auto px-4 sm:px-6"
+              className="py-32 container mx-auto px-4 sm:px-6"
             >
-              <div className="flex flex-col items-center justify-center gap-6">
-                {/* AI Thinking Animation */}
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <Brain className="w-10 h-10 text-white animate-pulse" />
+              <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center">
+                {/* Animated Car with Thinking Brain */}
+                <div className="relative mb-12">
+                  {/* Pulse rings */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-40 h-40 rounded-full border border-primary/20 pulse-ring" />
                   </div>
-                  <div className="absolute -inset-4 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-3xl blur-xl animate-pulse" />
-                </div>
-                
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    AI is searching...
-                  </h2>
-                  <p className="text-gray-500 max-w-md">
-                    Analyzing your query and finding the best matches from thousands of listings
-                  </p>
-                </div>
-                
-                {/* Progress steps */}
-                <div className="flex items-center gap-3 mt-4">
-                  {['Analyzing', 'Searching', 'Matching', 'Ranking'].map((step, i) => (
-                    <motion.div
-                      key={step}
-                      initial={{ opacity: 0.3 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.5, duration: 0.3 }}
-                      className="flex items-center gap-2"
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-40 h-40 rounded-full border border-primary/10 pulse-ring" style={{ animationDelay: '0.5s' }} />
+                  </div>
+                  
+                  {/* Main container */}
+                  <motion.div 
+                    className="relative w-40 h-40 rounded-3xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-2xl"
+                    animate={{ scale: [1, 1.02, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {/* Scan line effect */}
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="absolute left-0 right-0 h-12 bg-gradient-to-b from-transparent via-primary/10 to-transparent scan-line" />
+                    </div>
+                    
+                    {/* Car icon */}
+                    <div className="car-drive transform scale-125">
+                      <CarIcon className="w-20 h-10 text-foreground car-bounce" />
+                    </div>
+                    
+                    {/* Brain indicator */}
+                    <motion.div 
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg"
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
                     >
-                      <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                      <span className="text-sm text-gray-500">{step}</span>
+                      <Brain className="w-4 h-4 text-primary-foreground" />
                     </motion.div>
-                  ))}
+                  </motion.div>
+                </div>
+                
+                {/* Text */}
+                <motion.h2 
+                  className="text-2xl font-display font-bold text-foreground mb-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  AI is searching
+                </motion.h2>
+                <motion.p 
+                  className="text-muted-foreground mb-10 font-light"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Analyzing thousands of listings for you...
+                </motion.p>
+                
+                {/* Animated steps */}
+                <div className="w-full space-y-3">
+                  {loadingSteps.map((step, i) => {
+                    const Icon = step.icon;
+                    return (
+                      <motion.div
+                        key={step.text}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.15 }}
+                        className="flex items-center gap-4 px-5 py-4 bg-card rounded-xl border border-border shadow-sm"
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          i <= 1 ? 'bg-primary/10' : 'bg-secondary'
+                        }`}>
+                          <Icon className={`w-5 h-5 ${i <= 1 ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
+                        <span className={`text-sm font-medium ${i <= 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {step.text}
+                        </span>
+                        {i <= 1 && (
+                          <motion.div 
+                            className="ml-auto flex gap-1"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6 + i * 0.2 }}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             </motion.section>
@@ -179,173 +260,146 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Results Section */}
-        {showResults && !searchMutation.isPending && (
-          <section className="py-16 container mx-auto px-4 sm:px-6" data-testid="section-results">
-            {/* Results Header */}
-            <motion.div 
+        <AnimatePresence>
+          {showResults && !searchMutation.isPending && (
+            <motion.section 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-10"
+              transition={{ duration: 0.4 }}
+              className="py-20 container mx-auto px-4 sm:px-6 bg-background relative z-10" 
+              data-testid="section-results"
             >
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium mb-3">
-                    {isPersonalized ? (
-                      <>
-                        <MapPin className="w-3.5 h-3.5" />
-                        Based on your preferences
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        AI Matched Results
-                      </>
-                    )}
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                    {currentQueryLabel ? (
-                      <>Results for "{currentQueryLabel}"</>
-                    ) : (
-                      "Cars for you"
-                    )}
-                  </h2>
-                  <p className="text-gray-500">
-                    {displayResults.length} vehicles found {locationLabel && `near ${locationLabel}`}
-                  </p>
-                </div>
-                
-                {hasSearched && (
-                  <button
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-all pressable"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                    New Search
-                  </button>
-                )}
-              </div>
-            </motion.div>
-            
-            {/* Results Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayResults.map((car: CarResult, index: number) => (
-                <CarCard key={car.id || `car-${index}`} car={car} index={index} />
-              ))}
-            </div>
-
-            {/* CTA Section */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mt-20 p-8 md:p-12 bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl text-center relative overflow-hidden"
-            >
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-3xl" />
-              </div>
-              
-              <div className="relative max-w-xl mx-auto">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 text-white/80 text-sm font-medium mb-4">
-                  <Sparkles className="w-4 h-4" />
-                  Refine Your Search
-                </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                  Not quite what you're looking for?
-                </h3>
-                <p className="text-gray-300 mb-8">
-                  Try a more specific search or chat with our AI assistant for personalized recommendations
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button 
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      setTimeout(() => {
-                        const searchInput = document.querySelector('[data-testid="input-search"]') as HTMLInputElement;
-                        if (searchInput) {
-                          searchInput.focus();
-                          searchInput.select();
-                        }
-                      }, 500);
-                    }}
-                    className="px-6 py-3 bg-white text-gray-900 hover:bg-gray-100 transition-all font-semibold rounded-xl pressable" 
-                  >
-                    New Search
-                  </button>
-                  {chatEnabled && (
-                    <button 
-                      onClick={() => setAssistantOpen(true)}
-                      className="px-6 py-3 bg-white/10 text-white hover:bg-white/20 transition-all font-semibold rounded-xl border border-white/20 pressable" 
+              {/* Results Header */}
+              <motion.div 
+                className="mb-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                  <div>
+                    <motion.div 
+                      className="flex items-center gap-2 text-sm font-medium text-primary mb-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
                     >
-                      Chat with AI
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </section>
-        )}
-
-        {/* Empty State */}
-        {!showResults && !searchMutation.isPending && !hasSearched && (
-          <section className="py-20 container mx-auto px-4 sm:px-6">
-            <div className="text-center max-w-md mx-auto">
-              {user ? (
-                <div className="flex flex-col items-center">
-                  {personalizedCarsQuery.isLoading ? (
-                    <>
-                      <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
-                      <p className="text-gray-500">Loading personalized recommendations...</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                        <Sparkles className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No cars yet</h3>
-                      <p className="text-gray-500">
-                        Try searching for specific models or features above
-                      </p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm"
-                >
-                  <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-8 h-8 text-indigo-500" />
+                      {isPersonalized ? (
+                        <>
+                          <MapPin className="w-4 h-4" />
+                          <span>Based on your preferences</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4" />
+                          <span>AI-powered results</span>
+                        </>
+                      )}
+                    </motion.div>
+                    <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+                      {currentQueryLabel ? (
+                        <>"{currentQueryLabel}"</>
+                      ) : (
+                        "Recommended for you"
+                      )}
+                    </h2>
+                    <p className="text-muted-foreground mt-2 font-light">
+                      Found {displayResults.length} vehicles matching your criteria {locationLabel && `near ${locationLabel}`}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Get personalized results</h3>
-                  <p className="text-gray-500 mb-6">
-                    Sign up to see cars matched to your preferences and location
+                  
+                  {hasSearched && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-foreground hover:text-primary-foreground hover:bg-primary rounded-full border border-border hover:border-primary transition-all duration-300 shadow-sm"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                      New search
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+              
+              {/* Results Grid with stagger animation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+                {displayResults.map((car: CarResult, index: number) => (
+                  <CarCard key={car.id || `car-${index}`} car={car} index={index} />
+                ))}
+              </div>
+
+              {/* CTA Section */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="mt-20 p-10 bg-card/50 backdrop-blur-sm rounded-3xl border border-border text-center relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-display font-bold text-foreground mb-3">
+                    Not quite right?
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mx-auto mb-8 font-light">
+                    Our AI learns from your feedback. Try a more specific search or chat with our assistant.
                   </p>
-                  <a 
-                    href="/signup" 
-                    className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all pressable"
-                  >
-                    Get Started Free
-                  </a>
-                </motion.div>
-              )}
-            </div>
-          </section>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button 
+                      onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setTimeout(() => {
+                          const searchInput = document.querySelector('[data-testid="input-search"]') as HTMLInputElement;
+                          if (searchInput) {
+                            searchInput.focus();
+                            searchInput.select();
+                          }
+                        }, 500);
+                      }}
+                      variant="default"
+                      className="h-12 px-8 rounded-full font-medium"
+                    >
+                      New Search
+                    </Button>
+                    {chatEnabled && (
+                      <Button 
+                        onClick={() => setAssistantOpen(true)}
+                        variant="outline"
+                        className="h-12 px-8 rounded-full font-medium bg-transparent border-border hover:bg-secondary hover:text-foreground"
+                      >
+                        Chat with AI
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* Landing Page Content (shown when no search active) */}
+        {!showResults && !searchMutation.isPending && !hasSearched && (
+          <LandingContent />
         )}
 
         {/* No Results State */}
         {hasSearched && !searchMutation.isPending && results.length === 0 && (
-          <section className="py-20 container mx-auto px-4 sm:px-6">
-            <div className="text-center max-w-md mx-auto">
-              <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-amber-500" />
+          <section className="py-32 container mx-auto px-4 sm:px-6 bg-background">
+            <motion.div 
+              className="text-center max-w-md mx-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="w-20 h-20 bg-secondary/50 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-border shadow-inner">
+                <Search className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">No exact matches</h2>
-              <p className="text-gray-500 mb-6">
-                Try adjusting your search criteria or use different keywords
+              <h2 className="text-2xl font-display font-bold text-foreground mb-3">No matches found</h2>
+              <p className="text-muted-foreground mb-8 font-light leading-relaxed">
+                We couldn't find any cars matching your exact criteria. Try adjusting your filters or use broader keywords.
               </p>
-              <button
+              <Button
                 onClick={() => {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                   setTimeout(() => {
@@ -356,35 +410,31 @@ export default function Home() {
                     }
                   }, 500);
                 }}
-                className="px-6 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all pressable"
+                size="lg"
+                className="rounded-full px-8"
               >
-                Try Another Search
-              </button>
-            </div>
+                Try another search
+              </Button>
+            </motion.div>
           </section>
         )}
         
         {/* Footer */}
-        <footer className="border-t border-gray-200 py-12 px-6 mt-20 bg-white">
-          <div className="container mx-auto max-w-4xl">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <a href="/" className="font-bold text-xl flex items-center gap-2 text-gray-900">
-                <div className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                  </svg>
-                </div>
-                SearchAuto
-              </a>
-              
-              <div className="flex items-center gap-6 text-sm text-gray-500">
-                <a href="/pricing" className="hover:text-gray-900 transition-colors">Pricing</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
-                <a href="#" className="hover:text-gray-900 transition-colors">Terms</a>
+        <footer className="border-t border-border py-16 px-6 bg-background/50 backdrop-blur-lg">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="flex items-center gap-3">
+                <Logo />
               </div>
               
-              <p className="text-sm text-gray-400">
-                © 2025 SearchAuto
+              <div className="flex items-center gap-8 text-sm text-muted-foreground font-medium">
+                <a href="/pricing" className="hover:text-primary transition-colors">Pricing</a>
+                <a href="#" className="hover:text-primary transition-colors">Privacy</a>
+                <a href="#" className="hover:text-primary transition-colors">Terms</a>
+              </div>
+              
+              <p className="text-sm text-muted-foreground/60">
+                © 2025 SearchAuto Inc.
               </p>
             </div>
           </div>

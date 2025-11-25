@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/navbar";
 import { Check, Sparkles, Crown, Phone, Loader2 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { createCheckout, getPlans, type Plan } from "@/lib/billing-api";
 import { getStoredUser } from "@/lib/auth-api";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export default function Pricing() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [loading, setLoading] = useState<number | null>(null);
   const [plansLoading, setPlansLoading] = useState(true);
   const [apiPlans, setApiPlans] = useState<Plan[]>([]);
@@ -16,7 +16,6 @@ export default function Pricing() {
   const user = getStoredUser();
   
   useEffect(() => {
-    // Fetch plans from API
     getPlans()
       .then(setApiPlans)
       .catch((err) => {
@@ -52,8 +51,7 @@ export default function Pricing() {
       description: "Perfect for occasional car shoppers",
       features: [
         "50 AI-powered searches",
-        "Real-time listings from AutoTrader",
-        "Vector similarity matching",
+        "Real-time listings",
         "Basic search filters",
         "Email support"
       ],
@@ -65,13 +63,13 @@ export default function Pricing() {
       icon: Crown,
       price: 25,
       credits: null,
-      description: "For serious buyers who want unlimited access",
+      description: "For serious buyers",
       features: [
         "Unlimited AI searches",
         "All Personal features",
         "Advanced filtering",
         "Priority support",
-        "Search history & saved cars",
+        "Search history",
         "Price drop alerts"
       ],
       cta: "Go Pro",
@@ -82,14 +80,13 @@ export default function Pricing() {
       icon: Phone,
       price: null,
       credits: null,
-      description: "White-glove car buying experience",
+      description: "White-glove experience",
       features: [
         "Everything in Pro",
-        "Dedicated account manager",
+        "Dedicated manager",
         "Direct dealer connections",
-        "Purchase negotiation assistance",
-        "Delivery coordination",
-        "24/7 concierge support"
+        "Negotiation assistance",
+        "24/7 support"
       ],
       cta: "Contact Sales",
       popular: false
@@ -97,39 +94,39 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen relative text-white">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-[#050014]/85 to-[#050014]/95" />
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       
-      <main className="relative z-10 pt-32 pb-20 px-6">
-        <div className="container mx-auto max-w-6xl">
+      <main className="pt-32 pb-24 px-6 relative">
+        {/* Background Elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="container mx-auto max-w-6xl relative z-10">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-sm font-semibold mb-6">
-              <Sparkles className="w-4 h-4" />
-              Simple, Transparent Pricing
-            </div>
-            <h1 className="text-5xl md:text-6xl font-display font-bold mb-6 text-white">
-              Find your dream car,<br />on your budget
+            <h1 className="text-4xl md:text-6xl font-display font-bold mb-6 tracking-tight">
+              Simple, transparent <br />
+              <span className="text-gradient">pricing</span>
             </h1>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto">
-              Choose the plan that fits your car search needs. Upgrade, downgrade, or cancel anytime.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light">
+              Choose the plan that fits your car search needs. No hidden fees.
             </p>
           </motion.div>
 
           {/* Pricing Cards */}
           {plansLoading ? (
             <div className="flex justify-center items-center min-h-[400px]">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : (
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid md:grid-cols-3 gap-8 mb-20">
             {planTemplates.map((planTemplate, index) => {
-              // Match API plan by name
               const apiPlan = apiPlans.find(p => p.name === planTemplate.name);
               const plan = { ...planTemplate, id: apiPlan?.id || index + 1 };
               const Icon = plan.icon;
@@ -139,83 +136,81 @@ export default function Pricing() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -8, boxShadow: plan.popular ? "0 25px 50px rgba(0,0,0,0.35)" : "0 25px 50px rgba(0,0,0,0.45)" }}
-                  className={`relative rounded-3xl p-8 transition-all duration-300 border ${
+                  className={`relative rounded-2xl p-8 transition-all duration-300 hover:-translate-y-2 ${
                     plan.popular
-                      ? "bg-gradient-to-br from-white to-gray-200 text-black border-transparent shadow-2xl"
-                      : "bg-white/5 border-white/15 text-white shadow-[0_25px_70px_rgba(0,0,0,0.45)]"
+                      ? "bg-gradient-to-b from-secondary/80 to-background border border-primary/30 shadow-2xl shadow-primary/10"
+                      : "bg-card/50 backdrop-blur-sm border border-border hover:border-primary/20 hover:shadow-xl"
                   }`}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 px-4 py-1 bg-black text-white text-sm font-semibold rounded-full shadow-lg">
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider rounded-full shadow-lg">
                       Most Popular
                     </div>
                   )}
 
-                  <div className="mb-6">
-                    <Icon className={`w-10 h-10 mb-4 ${plan.popular ? "text-black" : "text-white"}`} />
-                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                    <p className={plan.popular ? "text-black/70" : "text-white/70"}>
+                  <div className="mb-8">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${
+                      plan.popular ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
+                    }`}>
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-display font-bold mb-2">{plan.name}</h3>
+                    <p className="text-sm text-muted-foreground">
                       {plan.description}
                     </p>
                   </div>
 
-                  <div className="mb-6">
+                  <div className="mb-8">
                     {plan.price !== null ? (
                       <>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-bold">${plan.price}</span>
-                          <span className={plan.popular ? "text-black/60" : "text-white/60"}>
-                            /month
-                          </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-5xl font-display font-bold">${plan.price}</span>
+                          <span className="text-muted-foreground">/mo</span>
                         </div>
                         {plan.credits && (
-                          <p className={`mt-2 text-sm ${plan.popular ? "text-black/60" : "text-white/60"}`}>
-                            {plan.credits} search credits
+                          <p className="text-sm mt-2 text-primary font-medium">
+                            {plan.credits} searches included
                           </p>
                         )}
                         {!plan.credits && plan.price && (
-                          <p className={`mt-2 text-sm ${plan.popular ? "text-black/60" : "text-white/60"}`}>
+                          <p className="text-sm mt-2 text-primary font-medium">
                             Unlimited searches
                           </p>
                         )}
                       </>
                     ) : (
-                      <div className="text-3xl font-bold">{plan.name === "Premium" ? "Bespoke" : "Custom"}</div>
+                      <div className="text-4xl font-display font-bold">Custom</div>
                     )}
                   </div>
 
-                  <motion.button
+                  <Button
                     onClick={() => plan.name === "Premium" ? setLocation("/contact-sales") : handleCheckout(plan.id, plan.name)}
                     disabled={loading === plan.id}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all mb-6 disabled:opacity-50 shadow-lg hover:shadow-xl pressable ${
-                      plan.popular
-                        ? "bg-black text-white"
-                        : "bg-white text-black"
+                    className={`w-full h-12 mb-8 ${
+                      plan.popular ? "" : "bg-secondary text-foreground hover:bg-secondary/80"
                     }`}
+                    variant={plan.popular ? "default" : "secondary"}
                     data-testid={`plan-${plan.name.toLowerCase()}`}
                   >
                     {loading === plan.id ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...
-                      </span>
+                      </>
                     ) : (
                       plan.cta
                     )}
-                  </motion.button>
+                  </Button>
 
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                          plan.popular ? "text-black" : "text-white"
-                        }`} />
-                        <span className={plan.popular ? "text-black/70" : "text-white/70"}>
-                          {feature}
-                        </span>
+                      <li key={feature} className="flex items-start gap-3 text-sm text-muted-foreground">
+                        <div className={`mt-0.5 rounded-full p-0.5 ${
+                          plan.popular ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"
+                        }`}>
+                          <Check className="w-3 h-3" />
+                        </div>
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -226,32 +221,37 @@ export default function Pricing() {
           )}
 
           {/* FAQ */}
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-display font-bold text-center mb-12 text-white">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto"
+          >
+            <h2 className="text-3xl font-display font-bold text-center mb-12">
               Frequently Asked Questions
             </h2>
-            <div className="space-y-6">
+            <div className="grid gap-6">
               {[
                 {
                   q: "What happens after I use my credits?",
-                  a: "Personal plan users can purchase additional credits or upgrade to Pro for unlimited searches. Your search history is always saved."
+                  a: "Personal plan users can purchase additional credits seamlessly or upgrade to Pro for unlimited access."
                 },
                 {
                   q: "Can I cancel anytime?",
-                  a: "Yes! Cancel your subscription anytime. You'll keep access until the end of your billing period."
+                  a: "Yes! Cancel your subscription anytime with one click. You'll keep access until the end of your billing period."
                 },
                 {
                   q: "What's included in Premium?",
-                  a: "Premium includes a dedicated account manager who helps you find, negotiate, and purchase your perfect car. Contact our sales team for custom pricing."
+                  a: "Premium includes a dedicated automotive expert who manages the entire process: finding, negotiating, and arranging delivery."
                 }
               ].map((faq) => (
-                <div key={faq.q} className="bg-white/5 rounded-2xl p-6 border border-white/15 backdrop-blur-xl">
-                  <h3 className="font-semibold text-lg mb-2 text-white">{faq.q}</h3>
-                  <p className="text-white/70">{faq.a}</p>
+                <div key={faq.q} className="bg-card/30 p-6 rounded-xl border border-border">
+                  <h3 className="font-semibold text-foreground mb-2">{faq.q}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </main>
     </div>

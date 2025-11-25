@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getConversation, sendAssistantMessage } from "@/lib/assistant-api";
-import { getStoredUser } from "@/lib/auth-api";
-import { MessageSquare, Loader2, Send, LockKeyhole, X, Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MessageCircle, X, Send, Loader2, Bot, User, Maximize2, Minimize2 } from "lucide-react";
+import { getStoredUser } from "@/lib/auth-api";
+import { getConversation, sendAssistantMessage, type AssistantMessage as Message } from "@/lib/assistant-api";
+import { Button } from "@/components/ui/button";
 
 interface ChatSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRequireAuth?: () => void;
+  onRequireAuth: () => void;
   highlight?: boolean;
   onSearchIntent?: (query: string) => void;
   visible?: boolean;
@@ -24,224 +23,282 @@ export function ChatSidebar({
   onSearchIntent,
   visible = true,
 }: ChatSidebarProps) {
+  const [input, setInput] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const user = getStoredUser();
   const queryClient = useQueryClient();
-  const [message, setMessage] = useState("");
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  
+
   const conversationQuery = useQuery({
     queryKey: ["assistant-conversation"],
     queryFn: getConversation,
     enabled: !!user && open,
-    staleTime: 1000 * 60 * 5,
+    refetchInterval: open ? 5000 : false,
   });
-  
+
   const sendMutation = useMutation({
-    mutationFn: sendAssistantMessage,
-    onSuccess: (data) => {
-      queryClient.setQueryData(["assistant-conversation"], data);
-      setMessage("");
-      scrollToBottom();
-      const normalizedIntent = data.nextSearchQuery?.trim();
-      if (normalizedIntent) {
-        onSearchIntent?.(normalizedIntent);
+    mutationFn: (message: string) => sendAssistantMessage(message),
+    onMutate: async (newMessage) => {
+      await queryClient.cancelQueries({ queryKey: ["assistant-conversation"] });
+      const previous = queryClient.getQueryData(["assistant-conversation"]);
+      
+      queryClient.setQueryData(["assistant-conversation"], (old: any) => ({
+        ...old,
+        messages: [
+          ...(old?.messages || []),
+          { id: Date.now(), role: "user", content: newMessage, createdAt: new Date().toISOString() },
+        ],
+      }));
+      return { previous };
+    },
+    onError: (err, newMessage, context) => {
+      queryClient.setQueryData(["assistant-conversation"], context?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["assistant-conversation"] });
+    },
+    onSuccess: (response) => {
+      if (onSearchIntent && response?.nextSearchQuery) {
+        onSearchIntent(response.nextSearchQuery);
       }
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Assistant is unavailable. Please try again.");
-    },
   });
-  
-  const messages = useMemo(
-    () => conversationQuery.data?.messages ?? [],
-    [conversationQuery.data]
-  );
-  
-  const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      containerRef.current?.scrollTo({
-        top: containerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    });
-  };
-  
+
+  const messages = conversationQuery.data?.messages || [];
+
   useEffect(() => {
-    if ((!user || !visible) && open) {
-      onOpenChange(false);
+    if (open) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [user, open, onOpenChange, visible]);
-  
-  useEffect(() => {
-    if (open && messages.length) {
-      scrollToBottom();
-    }
-  }, [messages, open]);
-  
+  }, [open, messages.length]);
+
   const handleSend = () => {
-    if (!message.trim() || sendMutation.isPending) return;
-    sendMutation.mutate(message.trim());
+    if (!input.trim()) return;
+    if (!user) {
+      onRequireAuth();
+      return;
+    }
+    sendMutation.mutate(input.trim());
+    setInput("");
   };
-  
-  if (!visible) {
-    return null;
-  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  if (!visible) return null;
 
   return (
     <>
-      {/* Floating Chat Button */}
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.5, type: "spring" }}
-        className={cn(
-          "fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-5 py-3 shadow-lg transition-all",
-          user 
-            ? "bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xl" 
-            : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+      {/* Chat Toggle Button */}
+      <AnimatePresence>
+        {!open && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onOpenChange(true)}
+            className={`
+              fixed bottom-6 right-6 z-50 
+              w-14 h-14 rounded-full
+              bg-primary text-primary-foreground
+              flex items-center justify-center
+              shadow-2xl shadow-primary/20
+              border border-primary/20
+              transition-all duration-200
+              ${highlight ? "animate-pulse" : ""}
+            `}
+            data-testid="button-open-chat"
+          >
+            <MessageCircle className="w-6 h-6" />
+            {messages.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full text-[10px] font-bold text-white flex items-center justify-center border border-background">
+                {messages.length > 9 ? '9+' : messages.length}
+              </span>
+            )}
+          </motion.button>
         )}
-        onClick={() => {
-          if (!user) {
-            toast.info("Log in to chat with the AI assistant.");
-            onRequireAuth?.();
-            return;
-          }
-          onOpenChange(true);
-        }}
-      >
-        <span className="relative flex items-center gap-2 text-sm font-semibold">
-          <MessageSquare className="w-4 h-4" />
-          Chat
-          {highlight && (
-            <span className="absolute -top-1 -right-2 flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75 animate-ping"></span>
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-400"></span>
-            </span>
-          )}
-        </span>
-        {!user && <LockKeyhole className="w-4 h-4" />}
-      </motion.button>
-      
+      </AnimatePresence>
+
       {/* Chat Panel */}
       <AnimatePresence>
-        {user && open && (
-          <motion.aside
+        {open && (
+          <motion.div
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white border-l border-gray-200 shadow-2xl"
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className={`
+              fixed top-0 right-0 z-50 h-full
+              ${isExpanded ? "w-full lg:w-[600px]" : "w-full sm:w-[450px]"}
+              bg-background/95 backdrop-blur-xl border-l border-border
+              flex flex-col shadow-2xl
+            `}
+            data-testid="chat-sidebar"
           >
             {/* Header */}
-            <header className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                  <Sparkles className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                  <Bot className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">AI Assistant</p>
-                  <p className="text-xs text-gray-500">Ask me anything about cars</p>
+                  <h2 className="text-sm font-semibold text-foreground font-display">AI Assistant</h2>
+                  <p className="text-xs text-muted-foreground">Powered by SearchAuto Intelligence</p>
                 </div>
               </div>
-              <button
-                onClick={() => onOpenChange(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 transition rounded-lg hover:bg-gray-100"
-                aria-label="Close assistant"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </header>
-            
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4" ref={containerRef}>
-              {conversationQuery.isLoading ? (
-                <div className="flex items-center justify-center text-gray-400 h-full">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Loading...
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-                    <MessageSquare className="w-8 h-8 text-indigo-500" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Start a conversation</h3>
-                  <p className="text-sm text-gray-500">
-                    Ask about specific cars, get recommendations, or refine your search
-                  </p>
-                </div>
-              ) : (
-                messages.map((msg, i) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                        msg.role === "user"
-                          ? "bg-indigo-600 text-white rounded-br-md"
-                          : "bg-gray-100 text-gray-800 rounded-bl-md"
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                  </motion.div>
-                ))
-              )}
-              
-              {sendMutation.isPending && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex justify-start"
-                >
-                  <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm">Thinking...</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-            
-            {/* Input */}
-            <footer className="border-t border-gray-100 p-4">
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder="Ask about cars..."
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                  disabled={sendMutation.isPending}
-                />
                 <button
-                  onClick={handleSend}
-                  disabled={sendMutation.isPending || !message.trim()}
-                  className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all pressable"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="hidden lg:flex p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
-                  {sendMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+                  {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => onOpenChange(false)}
+                  className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  data-testid="button-close-chat"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </footer>
-          </motion.aside>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
+              {messages.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center h-full text-center"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-secondary/50 border border-border flex items-center justify-center mb-6">
+                    <Bot className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium text-foreground mb-2 font-display">How can I help?</h3>
+                  <p className="text-sm text-muted-foreground max-w-[280px] mb-8">
+                    Ask me anything about cars, financing, or refine your search criteria.
+                  </p>
+                  
+                  <div className="space-y-3 w-full max-w-[320px]">
+                    {[
+                      "Show me electric SUVs under $50k",
+                      "What's the best family car?",
+                      "Compare Tesla Model 3 vs Y",
+                    ].map((suggestion, i) => (
+                      <motion.button
+                        key={suggestion}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        onClick={() => {
+                          setInput(suggestion);
+                          inputRef.current?.focus();
+                        }}
+                        className="w-full px-4 py-3 text-sm text-left text-muted-foreground hover:text-foreground bg-secondary/30 hover:bg-secondary/60 rounded-xl border border-border hover:border-primary/30 transition-all"
+                      >
+                        {suggestion}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <>
+                  {messages.map((message: Message, index: number) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className={`flex gap-4 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+                    >
+                      <div className={`
+                        w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center border
+                        ${message.role === "user" 
+                          ? "bg-primary text-primary-foreground border-primary" 
+                          : "bg-secondary text-foreground border-border"
+                        }
+                      `}>
+                        {message.role === "user" 
+                          ? <User className="w-4 h-4" />
+                          : <Bot className="w-4 h-4" />
+                        }
+                      </div>
+                      <div className={`
+                        max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+                        ${message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary/50 border border-border text-foreground"
+                        }
+                      `}>
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {sendMutation.isPending && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex gap-4"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center border border-border">
+                        <Bot className="w-4 h-4 text-foreground" />
+                      </div>
+                      <div className="bg-secondary/30 border border-border rounded-2xl px-4 py-3">
+                        <div className="flex gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-6 border-t border-border bg-background/50 backdrop-blur-sm">
+              <div className="flex gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask anything..."
+                  disabled={sendMutation.isPending}
+                  className="flex-1 px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
+                  data-testid="input-chat"
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={!input.trim() || sendMutation.isPending}
+                  size="icon"
+                  className="rounded-xl w-12 h-12"
+                  data-testid="button-send"
+                >
+                  {sendMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Backdrop */}
       <AnimatePresence>
         {open && (
@@ -249,8 +306,8 @@ export function ChatSidebar({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 z-40 lg:hidden"
             onClick={() => onOpenChange(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           />
         )}
       </AnimatePresence>

@@ -1,22 +1,64 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { Home, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#050014] text-white relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#050014]/85 to-[#050014]/95" />
-      <Card className="w-full max-w-md mx-4 bg-white/5 border-white/10 backdrop-blur-2xl text-white relative z-10">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-amber-300" />
-            <h1 className="text-2xl font-bold">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-white/70">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-[hsl(220_13%_5%)] flex items-center justify-center px-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center max-w-md"
+      >
+        {/* 404 Number */}
+        <motion.div 
+          className="text-[120px] sm:text-[160px] font-bold leading-none gradient-text mb-4"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          404
+        </motion.div>
+        
+        <motion.h1 
+          className="text-2xl font-semibold text-white mb-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          Page not found
+        </motion.h1>
+        
+        <motion.p 
+          className="text-[hsl(220_10%_50%)] mb-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          The page you're looking for doesn't exist or has been moved.
+        </motion.p>
+        
+        <motion.div 
+          className="flex flex-col sm:flex-row gap-3 justify-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Link href="/">
+            <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 linear-button rounded-lg text-sm font-medium pressable">
+              <Home className="w-4 h-4" />
+              Go home
+            </button>
+          </Link>
+          <button 
+            onClick={() => window.history.back()}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 linear-button-secondary rounded-lg text-sm font-medium pressable"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go back
+          </button>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

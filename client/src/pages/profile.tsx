@@ -11,8 +11,9 @@ import {
   updateUserPreferences,
 } from "@/lib/auth-api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Settings, Lock, Check } from "lucide-react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 const CAR_TYPES = ["SUV", "Sedan", "Sports", "Truck", "Electric", "Coupe"];
 const BRANDS = ["Tesla", "BMW", "Mercedes", "Audi", "Porsche", "Lexus"];
@@ -137,122 +138,164 @@ export default function Profile() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-black via-[#050014] to-[#050014] text-white px-6">
-        <p className="text-lg mb-4">Log in to manage your profile.</p>
-        <Link href="/login" className="px-6 py-3 rounded-2xl bg-white text-black font-semibold pressable">
-          Go to login
-        </Link>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-6 border border-border">
+            <User className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground mb-8 text-lg">Log in to manage your profile</p>
+          <Link href="/login">
+            <Button size="lg">
+              Go to login
+            </Button>
+          </Link>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative text-white">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-[#050014]/85 to-[#050014]/95" />
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <main className="relative z-10 pt-28 pb-20 px-4 sm:px-6">
-        <div className="container mx-auto max-w-5xl space-y-10">
+      
+      <main className="pt-32 pb-24 px-4 sm:px-6">
+        <div className="container mx-auto max-w-4xl space-y-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h1 className="text-3xl font-display font-bold mb-2">Your Profile</h1>
+            <p className="text-muted-foreground">Manage your account and search preferences</p>
+          </motion.div>
+
           {profileQuery.isLoading && (
-            <div className="flex items-center gap-3 text-white/70">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Loading profile...
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Loading profile...</span>
             </div>
           )}
 
+          {/* Personal Profile */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-[0_35px_120px_rgba(0,0,0,0.45)]"
+            transition={{ delay: 0.1 }}
+            className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border shadow-sm"
           >
-            <div className="mb-6">
-              <h2 className="text-2xl font-display font-bold">Personal Profile</h2>
-              <p className="text-white/70">Keep your account details up to date.</p>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                <User className="w-5 h-5 text-foreground" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Personal Profile</h2>
+                <p className="text-sm text-muted-foreground">Keep your account details up to date</p>
+              </div>
             </div>
+            
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm text-white/70 mb-2">Username</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Username</label>
                 <input
                   value={profile.username}
                   onChange={(e) => setProfile({ ...profile, username: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm text-white/70 mb-2">Email</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Email</label>
                 <input
                   type="email"
                   value={profile.email}
                   onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm text-white/70 mb-2">Location</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Location</label>
                 <input
                   value={profile.location}
                   onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm text-white/70 mb-2">Postal code</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Postal code</label>
                 <input
                   value={profile.postalCode}
                   onChange={(e) => setProfile({ ...profile, postalCode: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                 />
               </div>
             </div>
-            <button
-              className="mt-6 px-6 py-3 bg-white text-black rounded-2xl font-semibold pressable disabled:opacity-60"
-              onClick={handleProfileSave}
-              disabled={profileMutation.isPending}
-            >
-              {profileMutation.isPending ? "Saving..." : "Save profile"}
-            </button>
+            <div className="mt-8 flex justify-end">
+              <Button
+                onClick={handleProfileSave}
+                disabled={profileMutation.isPending}
+              >
+                {profileMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </motion.section>
 
+          {/* Search Preferences */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-[0_35px_120px_rgba(0,0,0,0.45)]"
+            transition={{ delay: 0.2 }}
+            className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border shadow-sm"
           >
-            <div className="mb-6">
-              <h2 className="text-2xl font-display font-bold">Search Preferences</h2>
-              <p className="text-white/70">Steer searches toward what you love.</p>
-            </div>
-            <div className="space-y-5">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                <Settings className="w-5 h-5 text-foreground" />
+              </div>
               <div>
-                <h3 className="text-lg font-semibold mb-3">Preferred car types</h3>
+                <h2 className="font-semibold text-lg">Search Preferences</h2>
+                <p className="text-sm text-muted-foreground">Customize your search results</p>
+              </div>
+            </div>
+            
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Preferred car types</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {CAR_TYPES.map((type) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => togglePreference("preferredTypes", type)}
-                      className={`px-4 py-3 rounded-2xl text-sm pressable ${
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
                         preferences.preferredTypes.includes(type)
-                          ? "bg-white text-black"
-                          : "bg-white/10 text-white/70"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                       }`}
                     >
-                      {type}
+                      <span className="flex items-center justify-center gap-2">
+                        {preferences.preferredTypes.includes(type) && <Check className="w-3.5 h-3.5" />}
+                        {type}
+                      </span>
                     </button>
                   ))}
                 </div>
               </div>
+              
               <div>
-                <h3 className="text-lg font-semibold mb-3">Favorite brands</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <h3 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Favorite brands</h3>
+                <div className="flex flex-wrap gap-3">
                   {BRANDS.map((brand) => (
                     <button
                       key={brand}
                       type="button"
                       onClick={() => togglePreference("preferredBrands", brand)}
-                      className={`px-4 py-3 rounded-2xl text-sm pressable ${
+                      className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
                         preferences.preferredBrands.includes(brand)
-                          ? "bg-white text-black"
-                          : "bg-white/10 text-white/70"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                       }`}
                     >
                       {brand}
@@ -260,16 +303,19 @@ export default function Profile() {
                   ))}
                 </div>
               </div>
+              
               <div>
-                <h3 className="text-lg font-semibold mb-3">Fuel preference</h3>
+                <h3 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Fuel preference</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {FUELS.map((fuel) => (
                     <button
                       key={fuel}
                       type="button"
                       onClick={() => setPreferences({ ...preferences, fuelType: fuel })}
-                      className={`px-4 py-3 rounded-2xl text-sm pressable ${
-                        preferences.fuelType === fuel ? "bg-white text-black" : "bg-white/10 text-white/70"
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                        preferences.fuelType === fuel 
+                          ? "bg-primary text-primary-foreground border-primary" 
+                          : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                       }`}
                     >
                       {fuel}
@@ -277,59 +323,69 @@ export default function Profile() {
                   ))}
                 </div>
               </div>
-              <button
-                className="w-full md:w-auto mt-2 px-6 py-3 bg-white text-black rounded-2xl font-semibold pressable disabled:opacity-60"
-                onClick={handlePreferencesSave}
-                disabled={preferencesMutation.isPending}
-              >
-                {preferencesMutation.isPending ? "Saving..." : "Save preferences"}
-              </button>
+              
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={handlePreferencesSave}
+                  disabled={preferencesMutation.isPending}
+                >
+                  {preferencesMutation.isPending ? "Saving..." : "Save Preferences"}
+                </Button>
+              </div>
             </div>
           </motion.section>
 
+          {/* Change Password */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-[0_35px_120px_rgba(0,0,0,0.45)]"
+            transition={{ delay: 0.3 }}
+            className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border shadow-sm"
           >
-            <div className="mb-6">
-              <h2 className="text-2xl font-display font-bold">Change Password</h2>
-              <p className="text-white/70">Keep your account secure.</p>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
+                <Lock className="w-5 h-5 text-foreground" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg">Change Password</h2>
+                <p className="text-sm text-muted-foreground">Keep your account secure</p>
+              </div>
             </div>
+            
             <div className="grid md:grid-cols-3 gap-4">
               <input
                 type="password"
                 placeholder="Current password"
                 value={passwords.current}
                 onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                className="px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
               />
               <input
                 type="password"
                 placeholder="New password"
                 value={passwords.next}
                 onChange={(e) => setPasswords({ ...passwords, next: e.target.value })}
-                className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                className="px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
               />
               <input
                 type="password"
                 placeholder="Confirm password"
                 value={passwords.confirm}
                 onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                className="px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-white focus:ring-2 focus:ring-white/30 outline-none"
+                className="px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
               />
             </div>
-            <button
-              className="mt-6 px-6 py-3 bg-white text-black rounded-2xl font-semibold pressable disabled:opacity-60"
-              onClick={handlePasswordSave}
-              disabled={passwordMutation.isPending}
-            >
-              {passwordMutation.isPending ? "Updating..." : "Update password"}
-            </button>
+            <div className="mt-8 flex justify-end">
+              <Button
+                onClick={handlePasswordSave}
+                disabled={passwordMutation.isPending}
+              >
+                {passwordMutation.isPending ? "Updating..." : "Update Password"}
+              </Button>
+            </div>
           </motion.section>
         </div>
       </main>
     </div>
   );
 }
-

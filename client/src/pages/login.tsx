@@ -3,23 +3,26 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { login, storeUser } from "@/lib/auth-api";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = useMutation({
-    mutationFn: () => login(email, password),
+    mutationFn: () => login({ email, password }),
     onSuccess: (data) => {
       storeUser(data.user);
-      toast.success("Welcome back!");
+      toast.success("Welcome back");
       setLocation("/");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Login failed");
+      toast.error(error.message || "Invalid credentials");
     },
   });
 
@@ -33,89 +36,91 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4 py-12">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="orb orb-primary w-[400px] h-[400px] -top-20 -left-20 opacity-30" />
-        <div className="orb orb-accent w-[300px] h-[300px] bottom-20 -right-20 opacity-30" />
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-secondary/20 rounded-full blur-[120px]" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-sm relative z-10"
       >
         {/* Logo */}
-        <a href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            </svg>
-          </div>
-          <span className="font-bold text-2xl text-gray-900">SearchAuto</span>
+        <a href="/" className="flex items-center justify-center mb-8">
+          <Logo />
         </a>
 
         {/* Card */}
-        <motion.div
-          initial={{ scale: 0.98 }}
-          animate={{ scale: 1 }}
-          className="bg-white rounded-2xl p-8 shadow-xl shadow-gray-200/50 border border-gray-200"
-        >
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
-            <p className="text-gray-500">Log in to continue your search</p>
+        <div className="bg-card/50 backdrop-blur-xl rounded-2xl p-8 border border-border shadow-2xl">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-display font-bold text-foreground mb-2">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">Sign in to continue to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                placeholder="john@example.com"
+                className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                placeholder="you@example.com"
                 data-testid="input-email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                placeholder="••••••••"
-                data-testid="input-password"
-              />
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                  placeholder="••••••••"
+                  data-testid="input-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            <motion.button
+            <Button
               type="submit"
               disabled={loginMutation.isPending}
-              whileTap={{ scale: 0.98 }}
-              className="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all pressable mt-6"
+              className="w-full h-12 text-base font-medium"
               data-testid="button-login"
             >
               {loginMutation.isPending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Logging in...
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Signing in...
                 </>
               ) : (
-                "Log In"
+                <>
+                  Sign in
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
               )}
-            </motion.button>
+            </Button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-500">
+          <p className="text-center mt-8 text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a href="/signup" className="text-indigo-600 font-medium hover:underline">
+            <a href="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
               Sign up
             </a>
           </p>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );

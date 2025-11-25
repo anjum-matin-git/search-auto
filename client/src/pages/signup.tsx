@@ -5,6 +5,8 @@ import { useMutation } from "@tanstack/react-query";
 import { signup, storeUser } from "@/lib/auth-api";
 import { Loader2, ArrowRight, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/logo";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -102,101 +104,99 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center px-4 py-12">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="orb orb-primary w-[400px] h-[400px] -top-20 -right-20 opacity-30" />
-        <div className="orb orb-accent w-[300px] h-[300px] bottom-20 -left-20 opacity-30" />
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-secondary/20 rounded-full blur-[120px]" />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg relative z-10"
+        className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
-        <a href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            </svg>
-          </div>
-          <span className="font-bold text-2xl text-gray-900">SearchAuto</span>
+        <a href="/" className="flex items-center justify-center mb-8">
+          <Logo textClassName="text-2xl" />
         </a>
 
         {/* Card */}
-        <motion.div
-          initial={{ scale: 0.98 }}
-          animate={{ scale: 1 }}
-          className="bg-white rounded-2xl p-8 shadow-xl shadow-gray-200/50 border border-gray-200"
-        >
+        <div className="bg-card/50 backdrop-blur-xl rounded-2xl p-8 border border-border shadow-2xl">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h1>
-            <p className="text-gray-500">Step {step} of 3</p>
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-display font-bold text-foreground mb-2">Create your account</h1>
+            <p className="text-sm text-muted-foreground">Step {step} of 3</p>
           </div>
 
           {/* Progress bar */}
           <div className="flex gap-2 mb-8">
             {[1, 2, 3].map((s) => (
-              <div
+              <motion.div
                 key={s}
-                className={`h-1.5 flex-1 rounded-full transition-all ${
-                  s <= step ? "bg-indigo-600" : "bg-gray-200"
+                className={`h-1 flex-1 rounded-full transition-colors ${
+                  s <= step ? "bg-primary" : "bg-secondary"
                 }`}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: s * 0.1 }}
               />
             ))}
           </div>
 
           <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
             {step === 1 && (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                className="space-y-5"
+              >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Username</label>
                   <input
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                     placeholder="johndoe"
                     data-testid="input-username"
                   />
-                  <p className="text-xs text-gray-400 mt-1">3-50 characters</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Email</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                     placeholder="john@example.com"
                     data-testid="input-email"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">Password</label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                     placeholder="••••••••"
                     data-testid="input-password"
                   />
-                  <p className="text-xs text-gray-400 mt-1">At least 6 characters</p>
+                  <p className="text-xs text-muted-foreground mt-2">At least 6 characters</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Postal Code <span className="text-gray-400">(optional)</span></label>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    Postal Code <span className="text-muted-foreground/50">(optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.postalCode}
                     onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                     placeholder="10001"
                     data-testid="input-postal"
                   />
-                  <p className="text-xs text-gray-400 mt-1">We'll show you cars nearby</p>
                 </div>
               </motion.div>
             )}
@@ -204,22 +204,22 @@ export default function Signup() {
             {step === 2 && (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">What type of car interests you?</h2>
+                  <h2 className="text-sm font-medium text-foreground mb-4">What type of car interests you?</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {carTypes.map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => toggleSelection("carTypes", type)}
-                        className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
                           formData.carTypes.includes(type)
-                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                            : "border-gray-200 hover:border-gray-300 text-gray-600"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                         }`}
                         data-testid={`type-${type.toLowerCase()}`}
                       >
                         <span className="flex items-center justify-center gap-2">
-                          {formData.carTypes.includes(type) && <Check className="w-4 h-4" />}
+                          {formData.carTypes.includes(type) && <Check className="w-3.5 h-3.5" />}
                           {type}
                         </span>
                       </button>
@@ -228,17 +228,17 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Preferred brands</h3>
+                  <h3 className="text-sm font-medium text-foreground mb-4">Preferred brands</h3>
                   <div className="flex flex-wrap gap-2">
                     {brands.map((brand) => (
                       <button
                         key={brand}
                         type="button"
                         onClick={() => toggleSelection("brands", brand)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
                           formData.brands.includes(brand)
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                         }`}
                         data-testid={`brand-${brand.toLowerCase()}`}
                       >
@@ -253,10 +253,10 @@ export default function Signup() {
             {step === 3 && (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">What's your budget?</h2>
-                  <div className="grid grid-cols-2 gap-3">
+                  <h2 className="text-sm font-medium text-foreground mb-4">What's your budget?</h2>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Min Price</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">Min Price</label>
                       <input
                         type="number"
                         value={formData.priceMin}
@@ -267,13 +267,13 @@ export default function Signup() {
                             e.stopPropagation();
                           }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                         placeholder="$30,000"
                         data-testid="input-price-min"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Max Price</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-2">Max Price</label>
                       <input
                         type="number"
                         value={formData.priceMax}
@@ -284,7 +284,7 @@ export default function Signup() {
                             e.stopPropagation();
                           }
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
                         placeholder="$80,000"
                         data-testid="input-price-max"
                       />
@@ -293,17 +293,17 @@ export default function Signup() {
                 </div>
 
                 <div>
-                  <label className="block text-lg font-semibold text-gray-900 mb-3">Fuel preference</label>
+                  <label className="block text-sm font-medium text-foreground mb-4">Fuel preference</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {fuelTypes.map((fuel) => (
                       <button
                         key={fuel}
                         type="button"
                         onClick={() => setFormData({ ...formData, fuelType: fuel })}
-                        className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
                           formData.fuelType === fuel
-                            ? "bg-indigo-600 text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-secondary/30 text-muted-foreground hover:text-foreground border-border hover:border-primary/30"
                         }`}
                         data-testid={`fuel-${fuel.toLowerCase()}`}
                       >
@@ -316,31 +316,31 @@ export default function Signup() {
             )}
 
             {/* Navigation buttons */}
-            <div className="flex gap-3 mt-8">
+            <div className="flex gap-4 mt-8">
               {step > 1 && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setStep(step - 1)}
-                  className="px-4 py-3 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-2"
+                  className="h-12"
                   data-testid="button-back"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
-                </button>
+                </Button>
               )}
               {step < 3 ? (
-                <motion.button
+                <Button
                   type="button"
                   onClick={handleNext}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-indigo-700 transition-all pressable"
+                  className="flex-1 h-12"
                   data-testid="button-next"
                 >
                   Continue
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
               ) : (
-                <motion.button
+                <Button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
@@ -349,30 +349,32 @@ export default function Signup() {
                     }
                   }}
                   disabled={signupMutation.isPending}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all pressable"
+                  className="flex-1 h-12"
                   data-testid="button-signup"
                 >
                   {signupMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating account...
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Creating Account...
                     </>
                   ) : (
-                    "Create Account"
+                    <>
+                      Create Account
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
                   )}
-                </motion.button>
+                </Button>
               )}
             </div>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-500">
+          <p className="text-center mt-8 text-sm text-muted-foreground">
             Already have an account?{" "}
-            <a href="/login" className="text-indigo-600 font-medium hover:underline">
+            <a href="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
               Log in
             </a>
           </p>
-        </motion.div>
+        </div>
       </motion.div>
     </div>
   );

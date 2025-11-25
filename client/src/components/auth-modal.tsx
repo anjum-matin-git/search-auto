@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 interface AuthModalProps {
   open: boolean;
@@ -12,20 +12,18 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-black text-white rounded-xl flex items-center justify-center shadow-lg shadow-black/20">
-              <Sparkles className="w-6 h-6" />
-            </div>
+          <div className="flex justify-center mb-6">
+            <Logo showText={false} iconClassName="w-16 h-16" />
           </div>
-          <DialogTitle className="text-center text-2xl">Sign in to search</DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogTitle className="text-center text-2xl font-display font-bold">Sign in to search</DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground">
             Create a free account to unlock AI-powered car search
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 mt-4">
           <Link href="/signup">
             <button 
-              className="w-full px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 hover:shadow-lg hover:shadow-black/20 transition-all font-semibold"
+              className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all font-semibold"
               data-testid="modal-signup"
             >
               Create Account
@@ -33,7 +31,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           </Link>
           <Link href="/login">
             <button 
-              className="w-full px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium"
+              className="w-full px-6 py-3 border border-border rounded-xl hover:bg-secondary/50 transition-all font-medium text-foreground"
               data-testid="modal-login"
             >
               Log In

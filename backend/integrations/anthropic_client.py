@@ -1,6 +1,6 @@
 """
-Anthropic Claude integration for AI-powered car search.
-Clean, typed interface with error handling and retries.
+Anthropic Claude client for AI-powered car search operations.
+Provides feature extraction and summary generation.
 """
 from typing import List, Dict, Any, Optional
 import json
@@ -15,159 +15,157 @@ from core.exceptions import ExternalServiceException
 logger = get_logger(__name__)
 
 
-class AnthropicClient:
-    """Client for Anthropic Claude API operations (async)."""
+class ClaudeClient:
+    """Async client for Claude API operations."""
     
     def __init__(self):
-        self.client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-        self.model = settings.anthropic_model
+        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        self._model = settings.anthropic_model
     
     @retry(
         stop=stop_after_attempt(2),
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True
     )
-    async def chat_completion(
+    async def complete(
         self,
         messages: List[Dict[str, str]],
-        system: Optional[str] = None,
+        system_prompt: Optional[str] = None,
         max_tokens: int = 1024,
     ) -> str:
         """
-        Get chat completion from Claude.
+        Get completion from Claude.
         
         Args:
-            messages: List of message dicts with 'role' and 'content'
-            system: Optional system prompt
-            max_tokens: Maximum tokens in response
+            messages: Conversation messages
+            system_prompt: System instructions
+            max_tokens: Max response tokens
         
         Returns:
-            Response content as string
+            Response text
         """
         try:
-            logger.info("anthropic_chat_request", model=self.model, messages_count=len(messages))
+            # Format messages for Claude API
+            formatted = [
+                {"role": m["role"], "content": m["content"]}
+                for m in messages
+                if m.get("role") in ("user", "assistant")
+            ]
             
-            # Convert messages format if needed
-            formatted_messages = []
-            for msg in messages:
-                role = msg.get("role", "user")
-                # Claude only accepts "user" and "assistant" roles
-                if role == "system":
-                    continue  # System is passed separately
-                formatted_messages.append({
-                    "role": role if role in ["user", "assistant"] else "user",
-                    "content": msg.get("content", "")
-                })
-            
-            response = await self.client.messages.create(
-                model=self.model,
+            response = await self._client.messages.create(
+                model=self._model,
                 max_tokens=max_tokens,
-                system=system or "You are a helpful assistant.",
-                messages=formatted_messages
+                system=system_prompt or "You are a helpful assistant.",
+                messages=formatted
             )
             
             content = response.content[0].text if response.content else ""
             
-            logger.info("anthropic_chat_success", 
-                       input_tokens=response.usage.input_tokens,
-                       output_tokens=response.usage.output_tokens)
+            logger.info(
+                "claude_completion_success",
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens
+            )
             return content
             
         except Exception as e:
-            logger.error("anthropic_chat_error", error=str(e))
-            raise ExternalServiceException("Anthropic", str(e))
+            logger.error("claude_completion_error", error=str(e))
+            raise ExternalServiceException("Claude", str(e))
     
-    async def extract_features(self, query: str) -> Dict[str, Any]:
+    async def extract_search_features(self, query: str) -> Dict[str, Any]:
         """
-        Extract car features from natural language query using Claude.
+        Extract structured car features from natural language query.
         
         Args:
-            query: User's natural language search query
+            query: User's search query
         
         Returns:
-            Dict with extracted features (brand, model, type, price_range, etc.)
+            Dict with brand, model, price_max, features, etc.
         """
-        system = """You are a car search feature extractor. Extract structured car features from user queries.
-Return ONLY valid JSON with these fields (all optional):
-- brand: string (e.g., "Toyota", "BMW", "Land Rover")
-- model: string (e.g., "Camry", "3 Series", "Range Rover")
-- type: string (e.g., "SUV", "Sedan", "Truck")
+        system_prompt = """Extract car search parameters from the query.
+Return ONLY valid JSON with these optional fields:
+- brand: string (manufacturer name)
+- model: string (model name)
+- type: string (SUV, Sedan, Truck, etc.)
 - year_min: number
 - year_max: number
 - price_min: number
 - price_max: number
-- mileage_max: number
-- features: array of strings (e.g., ["leather seats", "sunroof", "red", "AWD"])
+- features: array of strings (colors, features like AWD, sunroof)
 - location: string
 
-IMPORTANT: 
-- "Range Rover" is a model by brand "Land Rover"
-- Colors like "red", "blue", "black" go in features array
-- Only include fields mentioned in the query
-- Return ONLY the JSON object, no explanation"""
+Rules:
+- "Range Rover" → brand: "Land Rover", model: "Range Rover"
+- Colors go in features array: ["red", "leather seats"]
+- "under $30k" → price_max: 30000
+- Return ONLY JSON, no explanation"""
 
-        messages = [{"role": "user", "content": f"Extract car features from: {query}"}]
+        messages = [{"role": "user", "content": f"Extract from: {query}"}]
         
-        response = await self.chat_completion(messages, system=system, max_tokens=512)
+        response = await self.complete(messages, system_prompt=system_prompt, max_tokens=256)
         
         try:
-            # Clean up response - remove markdown if present
+            # Clean markdown formatting if present
             cleaned = response.strip()
             if cleaned.startswith("```"):
-                cleaned = cleaned.split("```")[1]
+                parts = cleaned.split("```")
+                cleaned = parts[1] if len(parts) > 1 else parts[0]
                 if cleaned.startswith("json"):
                     cleaned = cleaned[4:]
-            cleaned = cleaned.strip()
             
-            features = json.loads(cleaned)
-            logger.info("features_extracted", query=query, features=features)
+            features = json.loads(cleaned.strip())
+            logger.info("features_extracted", query=query[:50], features=features)
             return features
+            
         except json.JSONDecodeError as e:
-            logger.error("json_decode_error", response=response, error=str(e))
+            logger.warning("feature_extraction_failed", error=str(e), response=response[:100])
             return {}
     
-    async def generate_summary(
+    async def generate_search_summary(
         self,
         cars: List[Dict[str, Any]],
         query: str,
-        count: int
+        total_count: int
     ) -> str:
         """
-        Generate a helpful summary of search results.
+        Generate friendly summary of search results.
         
         Args:
             cars: List of car data
-            query: Original user query
-            count: Total number of cars found
+            query: Original search query
+            total_count: Total cars found
         
         Returns:
-            Friendly summary string
+            Summary message for user
         """
         if not cars:
-            return f"I couldn't find any cars matching '{query}'. Try broadening your search criteria."
+            return f"I couldn't find cars matching '{query}'. Try adjusting your search."
         
-        system = """You are a helpful car concierge. Generate a brief, friendly summary of search results.
-Keep it to 2-3 sentences. Mention the top car's key highlights. Be conversational."""
+        system_prompt = """Generate a brief, friendly summary of car search results.
+Keep it to 2-3 sentences. Highlight the top car. Be conversational and helpful."""
 
-        # Prepare car summaries
-        car_summaries = []
+        # Format top results
+        top_cars = []
         for i, car in enumerate(cars[:3]):
-            car_summaries.append(
-                f"{i+1}. {car.get('year', 'N/A')} {car.get('brand', '')} {car.get('model', '')} "
-                f"- ${car.get('price', 'N/A'):,} in {car.get('location', 'N/A')}"
+            price = car.get("price", 0)
+            price_str = f"${price:,}" if price else "Contact dealer"
+            top_cars.append(
+                f"{i+1}. {car.get('year')} {car.get('brand')} {car.get('model')} - {price_str}"
             )
         
         messages = [{
             "role": "user",
-            "content": f"Query: {query}\nFound {count} cars. Top results:\n" + "\n".join(car_summaries)
+            "content": f"Query: {query}\nFound {total_count} cars:\n" + "\n".join(top_cars)
         }]
         
         try:
-            summary = await self.chat_completion(messages, system=system, max_tokens=256)
+            summary = await self.complete(messages, system_prompt=system_prompt, max_tokens=150)
             return summary.strip()
         except Exception as e:
             logger.warning("summary_generation_failed", error=str(e))
-            # Fallback to simple summary
             top = cars[0]
-            return f"Found {count} cars matching your search. Top pick: {top.get('year')} {top.get('brand')} {top.get('model')} at ${top.get('price', 0):,}."
+            return f"Found {total_count} cars. Top pick: {top.get('year')} {top.get('brand')} {top.get('model')}."
 
+
+# Convenience alias
+AnthropicClient = ClaudeClient

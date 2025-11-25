@@ -1,9 +1,8 @@
 """
-FastAPI router for car search.
-Hybrid approach: Agent for intelligence, Router for reliability.
+Search API router.
+Provides endpoints for car search with AI-powered features.
 """
 import asyncio
-import json
 from typing import Optional, List, Tuple
 from datetime import datetime
 
@@ -18,42 +17,62 @@ from core.config import settings
 from core.logging import get_logger
 from core.exceptions import AppException
 from modules.search.schemas import SearchRequest, SearchResponse, CarResponse
-from agents.react_agent import car_search_agent
 from agents.tools.search_tools import search_car_listings
-from integrations.anthropic_client import AnthropicClient
+from integrations.anthropic_client import ClaudeClient
 from services.credits_service import CreditsService
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
-async def _direct_search(query: str, user_context: dict, db: Session) -> Tuple[List[dict], str]:
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+async def execute_search(
+    query: str,
+    user_context: dict,
+    db: Session
+) -> Tuple[List[dict], str]:
     """
-    Direct search without relying on agent to save.
-    Returns (cars, summary).
+    Execute car search with feature extraction and summary.
+    
+    Args:
+        query: User's search query
+        user_context: User info (location, preferences)
+        db: Database session
+    
+    Returns:
+        Tuple of (cars, summary)
     """
-    claude = AnthropicClient()
+    claude = ClaudeClient()
     
-    # Step 1: Extract features from query
-    features = await claude.extract_features(query)
-    logger.info("features_extracted", query=query, features=features)
+    # Extract features from natural language
+    features = await claude.extract_search_features(query)
+    logger.info("features_extracted", query=query[:50], features=features)
     
-    # Step 2: Search for cars
+    # Build search parameters (handle list or string)
     brand = features.get("brand")
+    if isinstance(brand, list):
+        brand = brand[0] if brand else None
+    
     model = features.get("model")
-    price_max = features.get("price_max")
+    if isinstance(model, list):
+        model = model[0] if model else None
     price_min = features.get("price_min")
+    price_max = features.get("price_max")
     required_features = features.get("features", [])
     location = user_context.get("location")
     postal_code = user_context.get("postal_code")
     
-    # If no brand specified, use user preferences
+    # Use preferences if no brand specified
     if not brand:
         prefs = user_context.get("preferences", {})
         brands = prefs.get("preferred_brands", [])
         if brands:
-            brand = brands[0]  # Use first preferred brand
+            brand = brands[0]
     
+    # Execute search
     cars = await search_car_listings.ainvoke({
         "brand": brand,
         "model": model,
@@ -63,138 +82,182 @@ async def _direct_search(query: str, user_context: dict, db: Session) -> Tuple[L
         "postal_code": postal_code,
         "required_features": required_features if required_features else None,
         "user_query": query,
-        "limit": 10,
+        "limit": settings.default_search_limit,
         "page": 1
     })
     
-    logger.info("search_completed", cars_found=len(cars))
+    logger.info("search_executed", cars_found=len(cars))
     
-    # Step 3: Generate summary
-    summary = await claude.generate_summary(cars, query, len(cars))
+    # Generate summary
+    summary = await claude.generate_search_summary(cars, query, len(cars))
     
     return cars, summary
 
 
-def _save_search_results(
+def persist_search_results(
     db: Session,
     user_id: int,
     query: str,
     cars: List[dict],
     summary: str
 ) -> int:
-    """Save search results to database. Returns search_id."""
-    try:
-        # Create search record
-        search = Search(
-            user_id=user_id,
-            query=query,
+    """
+    Save search results to database.
+    
+    Args:
+        db: Database session
+        user_id: User's ID
+        query: Search query
+        cars: List of car data
+        summary: AI-generated summary
+    
+    Returns:
+        Search ID
+    """
+    # Create search record
+    search = Search(
+        user_id=user_id,
+        query=query,
+        created_at=datetime.utcnow()
+    )
+    db.add(search)
+    db.flush()
+    
+    # Save cars
+    for i, car_data in enumerate(cars):
+        match_score = car_data.get("match_score", 50)
+        if match_score > 1:
+            match_score = match_score / 100.0
+        
+        car = Car(
+            car_data={
+                "vin": car_data.get("vin") or "",
+                "brand": car_data.get("brand"),
+                "model": car_data.get("model"),
+                "year": car_data.get("year"),
+                "price": car_data.get("price"),
+                "location": car_data.get("location"),
+                "dealer": car_data.get("dealer"),
+                "images": car_data.get("images", [])[:3],
+            },
+            active=True,
             created_at=datetime.utcnow()
         )
-        db.add(search)
+        db.add(car)
         db.flush()
         
-        # Save cars and link to search
-        for i, car_data in enumerate(cars):
-            car = Car(
-                car_data={
-                    "vin": car_data.get("vin") or "",
-                    "brand": car_data.get("brand"),
-                    "model": car_data.get("model"),
-                    "year": car_data.get("year"),
-                    "price": car_data.get("price"),
-                    "location": car_data.get("location"),
-                    "dealer": car_data.get("dealer"),
-                    "images": car_data.get("images", [])[:3],
-                },
-                active=True,
-                created_at=datetime.utcnow()
-            )
-            db.add(car)
-            db.flush()
-            
-            match_score = car_data.get("match_score", 50)
-            if match_score > 1:
-                match_score = match_score / 100.0
-            
-            search_result = SearchResult(
-                search_id=search.id,
-                car_id=car.id,
-                rank=i + 1,
-                match_score=match_score
-            )
-            db.add(search_result)
-        
-        # Save to conversation
-        conversation = db.query(Conversation).filter(
-            Conversation.user_id == user_id
-        ).first()
-        
-        if not conversation:
-            conversation = Conversation(
-                user_id=user_id,
-                title="Car Search",
-                created_at=datetime.utcnow()
-            )
-            db.add(conversation)
-            db.flush()
-        
-        # Add assistant message
-        msg = ConversationMessage(
-            conversation_id=conversation.id,
-            role="assistant",
-            content=summary,
+        db.add(SearchResult(
+            search_id=search.id,
+            car_id=car.id,
+            rank=i + 1,
+            match_score=match_score
+        ))
+    
+    # Save to conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.user_id == user_id
+    ).first()
+    
+    if not conversation:
+        conversation = Conversation(
+            user_id=user_id,
+            title="Car Search",
             created_at=datetime.utcnow()
         )
-        db.add(msg)
-        
-        db.commit()
-        
-        logger.info("results_saved", search_id=search.id, cars_count=len(cars))
-        return search.id
-        
-    except Exception as e:
-        db.rollback()
-        logger.error("save_failed", error=str(e))
-        raise
-
-
-def _extract_cars_from_search(db: Session, search_id: int) -> List[CarResponse]:
-    """Extract saved cars from database."""
-    car_results = []
+        db.add(conversation)
+        db.flush()
     
-    try:
-        search_results = db.query(SearchResult).filter(
-            SearchResult.search_id == search_id
-        ).order_by(SearchResult.rank).limit(12).all()
-        
-        for sr in search_results:
-            car = db.query(Car).filter(Car.id == sr.car_id).first()
-            if car and car.car_data:
-                data = car.car_data
-                price_num = data.get("price", 0) or 0
-                price_str = f"${price_num:,}" if price_num else "Contact for price"
-                
-                car_results.append(CarResponse(
-                    id=car.id,
-                    vin=data.get("vin") or "",
-                    brand=data.get("brand") or "Unknown",
-                    model=data.get("model") or "Unknown",
-                    year=data.get("year") or 2024,
-                    price=price_str,
-                    priceNumeric=price_num,
-                    location=data.get("location"),
-                    dealerName=data.get("dealer"),
-                    images=data.get("images", [])[:3],
-                    match=int((sr.match_score or 0) * 100)
-                ))
-    except Exception as e:
-        logger.error("extract_cars_error", error=str(e))
+    db.add(ConversationMessage(
+        conversation_id=conversation.id,
+        role="assistant",
+        content=summary,
+        created_at=datetime.utcnow()
+    ))
     
-    return car_results
+    db.commit()
+    
+    logger.info("results_persisted", search_id=search.id, cars_count=len(cars))
+    return search.id
 
 
-def _build_user_context(user_id: int, user: User, db: Session) -> dict:
-    """Build user context for personalization."""
+def load_cars_from_search(db: Session, search_id: int) -> List[CarResponse]:
+    """
+    Load cars from a search result.
+    
+    Args:
+        db: Database session
+        search_id: Search ID
+    
+    Returns:
+        List of CarResponse objects
+    """
+    results = []
+    
+    search_results = db.query(SearchResult).filter(
+        SearchResult.search_id == search_id
+    ).order_by(SearchResult.rank).limit(settings.max_search_results).all()
+    
+    for sr in search_results:
+        car = db.query(Car).filter(Car.id == sr.car_id).first()
+        if not car or not car.car_data:
+            continue
+        
+        data = car.car_data
+        price_num = data.get("price", 0) or 0
+        price_str = f"${price_num:,}" if price_num else "Contact dealer"
+        
+        results.append(CarResponse(
+            id=car.id,
+            vin=data.get("vin") or "",
+            brand=data.get("brand") or "Unknown",
+            model=data.get("model") or "Unknown",
+            year=data.get("year") or 2024,
+            price=price_str,
+            priceNumeric=price_num,
+            location=data.get("location"),
+            dealerName=data.get("dealer"),
+            images=data.get("images", [])[:3],
+            match=int((sr.match_score or 0) * 100)
+        ))
+    
+    return results
+
+
+def load_latest_results_for_user(db: Session, user_id: int) -> Tuple[List[CarResponse], Optional[int]]:
+    """
+    Load the most recent search results for a user.
+    Used to show latest results on home page.
+    
+    Args:
+        db: Database session
+        user_id: User's ID
+    
+    Returns:
+        Tuple of (cars, search_id)
+    """
+    latest_search = db.query(Search).filter(
+        Search.user_id == user_id
+    ).order_by(Search.created_at.desc()).first()
+    
+    if not latest_search:
+        return [], None
+    
+    cars = load_cars_from_search(db, latest_search.id)
+    return cars, latest_search.id
+
+
+def build_user_context(user_id: int, user: User, db: Session) -> dict:
+    """
+    Build user context for personalization.
+    
+    Args:
+        user_id: User's ID
+        user: User model
+        db: Database session
+    
+    Returns:
+        Context dict with location, preferences
+    """
     context = {
         "user_id": user_id,
         "location": user.location,
@@ -220,10 +283,14 @@ def _build_user_context(user_id: int, user: User, db: Session) -> dict:
                 "budget": ip.get("price_max")
             }
     except Exception as e:
-        logger.warning("preferences_load_error", user_id=user_id, error=str(e))
+        logger.warning("preferences_load_failed", user_id=user_id, error=str(e))
     
     return context
 
+
+# =============================================================================
+# API Endpoints
+# =============================================================================
 
 @router.post("", response_model=SearchResponse)
 async def search_cars(
@@ -231,46 +298,50 @@ async def search_cars(
     current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
-    """Search for cars using direct approach for reliability."""
+    """
+    Search for cars with AI-powered features.
+    
+    - Extracts features from natural language
+    - Searches dealer inventory
+    - Ranks by relevance
+    - Returns cars with AI summary
+    """
     user_id = int(current_user.id)
     
     # Check credits
-    credits_service = CreditsService(db)
-    if not credits_service.check_quota(user_id):
+    credits = CreditsService(db)
+    if not credits.check_quota(user_id):
         logger.warning("quota_exceeded", user_id=user_id)
-        raise AppException("No credits remaining. Please upgrade your plan.", 402)
+        raise AppException("No credits remaining. Please upgrade.", 402)
     
     # Deduct credit
     try:
-        credits_service.deduct_credit(user_id)
+        credits.deduct_credit(user_id)
         db.commit()
     except AppException as e:
         if e.status_code == 402:
             raise
     
-    # Build context
-    user_context = _build_user_context(user_id, current_user, db)
+    user_context = build_user_context(user_id, current_user, db)
     
-    logger.info("search_start", query=request.query, user_id=user_id)
+    logger.info("search_request", query=request.query[:50], user_id=user_id)
     
     try:
-        # Direct search with timeout
+        # Execute search with timeout
         cars, summary = await asyncio.wait_for(
-            _direct_search(request.query, user_context, db),
-            timeout=float(settings.agent_timeout_seconds)
+            execute_search(request.query, user_context, db),
+            timeout=float(settings.search_timeout_seconds)
         )
         
-        # Save results
+        # Persist results
         search_id = None
         if cars:
-            search_id = _save_search_results(db, user_id, request.query, cars, summary)
+            search_id = persist_search_results(db, user_id, request.query, cars, summary)
         
-        # Extract saved cars
-        car_results = _extract_cars_from_search(db, search_id) if search_id else []
+        # Load persisted cars
+        car_results = load_cars_from_search(db, search_id) if search_id else []
         
-        logger.info("search_complete", 
-                    query=request.query, 
-                    cars_found=len(car_results))
+        logger.info("search_complete", query=request.query[:50], cars=len(car_results))
         
         return SearchResponse(
             success=True,
@@ -282,54 +353,73 @@ async def search_cars(
         )
         
     except asyncio.TimeoutError:
-        logger.error("search_timeout", query=request.query, user_id=user_id)
-        raise AppException("Search timed out. Please try a simpler query.", 408)
+        logger.error("search_timeout", query=request.query[:50], user_id=user_id)
+        raise AppException("Search timed out. Try a simpler query.", 408)
     except Exception as e:
-        logger.error("search_error", error=str(e), query=request.query)
+        logger.error("search_error", error=str(e), query=request.query[:50])
         raise AppException("Search failed. Please try again.", 500)
 
 
 @router.get("/personalized", response_model=SearchResponse)
-async def get_personalized_recommendations(
+async def get_personalized_results(
     current_user: User = Depends(get_current_user_jwt),
     db: Session = Depends(get_db)
 ):
-    """Get personalized car recommendations."""
+    """
+    Get personalized car recommendations.
+    
+    Returns:
+    - Last search results if available (for returning users)
+    - Otherwise, searches based on user preferences
+    """
     user_id = int(current_user.id)
-    user_context = _build_user_context(user_id, current_user, db)
+    user_context = build_user_context(user_id, current_user, db)
     
-    # Find last search or build from preferences
-    search_repo = SearchRepository(db)
-    last_searches = search_repo.get_user_history(user_id, limit=1)
+    # Check for existing results first (for home page)
+    existing_cars, existing_search_id = load_latest_results_for_user(db, user_id)
     
-    if last_searches:
-        query = last_searches[0].query
-        logger.info("using_last_search", user_id=user_id, query=query[:50])
+    if existing_cars:
+        # Get the query from the existing search
+        search_repo = SearchRepository(db)
+        last_searches = search_repo.get_user_history(user_id, limit=1)
+        query = last_searches[0].query if last_searches else "Your recent search"
+        
+        logger.info("returning_cached_results", user_id=user_id, cars=len(existing_cars))
+        
+        return SearchResponse(
+            success=True,
+            query=query,
+            count=len(existing_cars),
+            results=existing_cars,
+            search_id=existing_search_id,
+            message=f"Showing your recent search results for '{query}'."
+        )
+    
+    # No existing results - build query from preferences
+    prefs = user_context.get("preferences", {})
+    brands = prefs.get("preferred_brands", [])
+    budget = prefs.get("budget")
+    
+    if brands:
+        query = f"Show me {', '.join(brands[:2])} cars"
+        if budget:
+            query += f" under ${budget:,}"
     else:
-        prefs = user_context.get("preferences", {})
-        brands = prefs.get("preferred_brands", [])
-        budget = prefs.get("budget")
-        
-        if brands:
-            query = f"Show me {', '.join(brands[:2])} cars"
-            if budget:
-                query += f" under ${budget:,}"
-        else:
-            query = "Show me popular cars"
-        
-        logger.info("using_preferences", user_id=user_id, query=query)
+        query = "Show me popular cars"
+    
+    logger.info("personalized_search", user_id=user_id, query=query[:50])
     
     try:
         cars, summary = await asyncio.wait_for(
-            _direct_search(query, user_context, db),
-            timeout=float(settings.agent_timeout_seconds)
+            execute_search(query, user_context, db),
+            timeout=float(settings.search_timeout_seconds)
         )
         
         search_id = None
         if cars:
-            search_id = _save_search_results(db, user_id, query, cars, summary)
+            search_id = persist_search_results(db, user_id, query, cars, summary)
         
-        car_results = _extract_cars_from_search(db, search_id) if search_id else []
+        car_results = load_cars_from_search(db, search_id) if search_id else []
         
         return SearchResponse(
             success=True,
@@ -346,3 +436,41 @@ async def get_personalized_recommendations(
     except Exception as e:
         logger.error("personalized_error", error=str(e))
         raise AppException("Search failed. Please try again.", 500)
+
+
+@router.get("/latest", response_model=SearchResponse)
+async def get_latest_results(
+    current_user: User = Depends(get_current_user_jwt),
+    db: Session = Depends(get_db)
+):
+    """
+    Get the user's most recent search results.
+    Used by home page to show latest cars.
+    """
+    user_id = int(current_user.id)
+    
+    cars, search_id = load_latest_results_for_user(db, user_id)
+    
+    if not cars:
+        return SearchResponse(
+            success=True,
+            query="",
+            count=0,
+            results=[],
+            search_id=None,
+            message="No recent searches. Try searching for a car!"
+        )
+    
+    # Get the query
+    search_repo = SearchRepository(db)
+    last_searches = search_repo.get_user_history(user_id, limit=1)
+    query = last_searches[0].query if last_searches else ""
+    
+    return SearchResponse(
+        success=True,
+        query=query,
+        count=len(cars),
+        results=cars,
+        search_id=search_id,
+        message=f"Your latest search: '{query}'"
+    )

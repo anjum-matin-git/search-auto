@@ -1,76 +1,115 @@
 """
-LangChain tools for autonomous car search agent.
-Converts existing workflow steps into reusable tools.
+LangChain tools for car search agent.
+Provides search, filtering, and persistence capabilities.
 """
 from typing import Optional, Dict, Any, List
+from datetime import datetime
+
 from langchain_core.tools import tool
+
 from integrations.autodev_api import AutoDevAPI
-from integrations.openai_client import OpenAIClient
 from core.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-# Helper functions (internal logic, not exposed as tools directly)
-def _filter_cars_logic(
-    cars: List[Dict],
-    required_features: Optional[List[str]] = None,
-    preferred_brands: Optional[List[str]] = None
-) -> List[Dict]:
-    """Internal helper to filter cars."""
-    filtered = cars
+# =============================================================================
+# Internal Helper Functions
+# =============================================================================
+
+def filter_by_features(
+    cars: List[Dict[str, Any]],
+    required_features: List[str]
+) -> List[Dict[str, Any]]:
+    """Filter cars by required features (color, type, etc.)."""
+    if not required_features:
+        return cars
     
-    # Filter by features
-    if required_features:
-        def has_features(car):
-            car_features = [f.lower() for f in car.get("features", [])]
-            car_desc = (car.get("description") or "").lower()
-            return all(
-                any(req.lower() in cf for cf in car_features) or req.lower() in car_desc
-                for req in required_features
-            )
-        filtered = [c for c in filtered if has_features(c)]
-    
-    # Filter by brands
-    if preferred_brands:
-        filtered = [
-            c for c in filtered 
-            if c.get("brand", "").lower() in [b.lower() for b in preferred_brands]
-        ]
+    def matches_features(car: Dict[str, Any]) -> bool:
+        car_features = [f.lower() for f in car.get("features", [])]
+        car_desc = (car.get("description") or "").lower()
+        car_color = (car.get("color") or "").lower()
         
+        for req in required_features:
+            req_lower = req.lower()
+            if any(req_lower in f for f in car_features):
+                continue
+            if req_lower in car_desc:
+                continue
+            if req_lower in car_color:
+                continue
+            return False
+        return True
+    
+    filtered = [c for c in cars if matches_features(c)]
+    logger.info("filtered_by_features", original=len(cars), filtered=len(filtered))
     return filtered
 
-def _rank_cars_logic(
-    cars: List[Dict],
-    user_query: str
-) -> List[Dict]:
-    """Internal helper to rank cars."""
-    # Simple relevance scoring
-    def calculate_score(car):
-        score = 50  # Base score
-        
-        # Boost for matching query terms
-        query_lower = user_query.lower()
-        if car.get("brand", "").lower() in query_lower:
-            score += 20
-        if car.get("model", "").lower() in query_lower:
-            score += 20
-        
-        # Penalize for missing data
-        if not car.get("price"):
-            score -= 10
-        if not car.get("images"):
-            score -= 5
-        
-        return score
+
+def calculate_relevance_score(car: Dict[str, Any], query: str) -> int:
+    """Calculate relevance score for a car based on query."""
+    score = 50  # Base score
+    query_lower = query.lower()
     
-    # Add scores and sort
+    # Brand match
+    brand = (car.get("brand") or "").lower()
+    if brand and brand in query_lower:
+        score += 20
+    
+    # Model match
+    model = (car.get("model") or "").lower()
+    if model and model in query_lower:
+        score += 15
+    
+    # Has images
+    if car.get("images"):
+        score += 10
+    
+    # Has valid price
+    if car.get("price") and car["price"] > 0:
+        score += 5
+    
+    return min(score, 100)
+
+
+def rank_by_relevance(
+    cars: List[Dict[str, Any]],
+    query: str
+) -> List[Dict[str, Any]]:
+    """Rank cars by relevance to user query."""
     for car in cars:
-        car["match_score"] = calculate_score(car)
+        car["match_score"] = calculate_relevance_score(car, query)
     
     ranked = sorted(cars, key=lambda x: x.get("match_score", 0), reverse=True)
+    
+    if ranked:
+        logger.info("ranked_results", top_score=ranked[0].get("match_score"))
+    
     return ranked
 
+
+def normalize_car_data(car: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize car data to consistent format."""
+    return {
+        "brand": car.get("brand"),
+        "model": car.get("model"),
+        "year": car.get("year"),
+        "price": car.get("price"),
+        "mileage": car.get("mileage"),
+        "location": car.get("location"),
+        "dealer": car.get("dealer_name") or car.get("dealer"),
+        "description": (car.get("description") or "")[:200],
+        "features": car.get("features", [])[:5],
+        "vin": car.get("vin") or "",
+        "images": car.get("images", [])[:5],
+        "source_url": car.get("sourceUrl") or car.get("source_url"),
+        "match_score": car.get("match_score", 50)
+    }
+
+
+# =============================================================================
+# LangChain Tools
+# =============================================================================
 
 @tool
 async def search_car_listings(
@@ -89,99 +128,82 @@ async def search_car_listings(
     page: int = 1
 ) -> List[Dict[str, Any]]:
     """
-    Search for car listings from Auto.dev API and filter/rank them in one step.
-    Use this tool to find actual cars for sale.
+    Search for car listings from dealer inventory.
     
     Args:
-        brand: Car manufacturer (e.g., "Toyota", "Honda")
-        model: Car model (e.g., "Camry", "Accord")
+        brand: Car manufacturer (Toyota, BMW, etc.)
+        model: Car model (Camry, X5, etc.)
         year_min: Minimum year
         year_max: Maximum year
         price_min: Minimum price in dollars
         price_max: Maximum price in dollars
         location: City or region
-        postal_code: Postal code for location-based search
+        postal_code: Postal/ZIP code
         country: Country code (CA or US)
-        required_features: List of features to filter by (e.g., ["red", "sunroof", "AWD"])
-        user_query: Original user query string (used for relevance ranking)
-        limit: Number of results to return (default 10)
-        page: Page number for pagination (default 1)
-        
+        required_features: Features to filter by (red, AWD, sunroof)
+        user_query: Original query for relevance ranking
+        limit: Max results to return
+        page: Page number for pagination
+    
     Returns:
-        List of filtered and ranked car listings
+        List of matching car listings
     """
     logger.info(
-        "tool_search_listings",
+        "tool_search_start",
         brand=brand,
         model=model,
-        location=location,
+        price_max=price_max,
         features=required_features,
-        page=page,
-        limit=limit
+        page=page
     )
     
-    # Build query params
-    query_params = {}
+    # Build API parameters
+    params = {
+        "country": country,
+        "radius_km": 150,
+        "limit": max(limit * 2, 20),  # Fetch extra for filtering
+        "page": page
+    }
+    
     if brand:
-        query_params["brand"] = brand
+        params["brand"] = brand
     if model:
-        query_params["model"] = model
+        params["model"] = model
     if year_min:
-        query_params["year_min"] = year_min
+        params["year_min"] = year_min
     if year_max:
-        query_params["year_max"] = year_max
+        params["year_max"] = year_max
     if price_min:
-        query_params["price_min"] = price_min
+        params["price_min"] = price_min
     if price_max:
-        query_params["price_max"] = price_max
+        params["price_max"] = price_max
     if location:
-        query_params["location"] = location
+        params["location"] = location
     if postal_code:
-        query_params["postal_code"] = postal_code
-    query_params["country"] = country
-    query_params["radius_km"] = 150
+        params["postal_code"] = postal_code
     
-    # Request more from API to allow for local filtering
-    # If user asks for 10, we fetch 20 to have buffer
-    query_params["limit"] = max(limit * 2, 20)
-    query_params["page"] = page
+    # Execute search
+    api = AutoDevAPI()
+    raw_cars = await api.search_listings(params)
     
-    # Search using Auto.dev API
-    autodev = AutoDevAPI()
-    cars = await autodev.search_listings(query_params)
+    logger.info("api_results", count=len(raw_cars))
     
-    logger.info("listings_found", count=len(cars))
+    # Normalize data
+    cars = [normalize_car_data(car) for car in raw_cars]
     
-    # Convert to simplified format first
-    simplified_cars = [
-        {
-            "brand": car.get("brand"),
-            "model": car.get("model"),
-            "year": car.get("year"),
-            "price": car.get("price"),
-            "mileage": car.get("mileage"),
-            "location": car.get("location"),
-            "dealer": car.get("dealer_name") or car.get("dealer"),
-            "description": (car.get("description") or "")[:200],  # Truncate for LLM performance
-            "features": car.get("features", [])[:5],  # Limit features
-            "vin": car.get("vin"),
-            "images": car.get("images", []),
-            "sourceUrl": car.get("sourceUrl")
-        }
-        for car in cars  # Process all returned cars
-    ]
-    
-    # Apply internal filtering if features requested
+    # Apply feature filtering
     if required_features:
-        simplified_cars = _filter_cars_logic(simplified_cars, required_features=required_features)
-        logger.info("filtered_results", final_count=len(simplified_cars))
-        
-    # Apply internal ranking if query provided
-    if user_query:
-        simplified_cars = _rank_cars_logic(simplified_cars, user_query)
-        logger.info("ranked_results", top_score=simplified_cars[0].get("match_score") if simplified_cars else 0)
+        cars = filter_by_features(cars, required_features)
     
-    return simplified_cars[:limit]  # Return requested limit
+    # Rank by relevance
+    if user_query:
+        cars = rank_by_relevance(cars, user_query)
+    
+    # Return requested limit
+    result = cars[:limit]
+    
+    logger.info("tool_search_complete", returned=len(result))
+    return result
 
 
 @tool
@@ -192,180 +214,21 @@ def save_search_results(
     summary: str
 ) -> Dict[str, Any]:
     """
-    Save search results and post a message to the user's conversation.
-    Use this tool when you have found cars and want to present them to the user.
+    Save search results to database and conversation.
     
     Args:
-        user_id: The user's ID
-        query: The original search query
-        results: List of car dictionaries with details (brand, model, price, etc.)
-        summary: Your summary/recommendation message to show the user
-        
+        user_id: User's ID
+        query: Search query
+        results: List of car data
+        summary: Summary message for user
+    
     Returns:
-        Dictionary with success status and conversation message ID
+        Dict with search_id, cars_saved, success status
     """
     from db.base import SessionLocal
     from db.models import Conversation, ConversationMessage, Search, SearchResult, Car
-    from datetime import datetime
     
-    logger.info("tool_save_search_results", user_id=user_id, query=query, results_count=len(results))
-    
-    db = SessionLocal()
-    try:
-        # Get or create conversation for user
-        conversation = db.query(Conversation).filter(
-            Conversation.user_id == user_id
-        ).first()
-        
-        if not conversation:
-            conversation = Conversation(
-                user_id=user_id,
-                title="Car Search Assistant",
-                created_at=datetime.utcnow()
-            )
-            db.add(conversation)
-            db.flush()
-        
-        # Check for duplicate user message (if the last message is from user and matches query)
-        last_message = db.query(ConversationMessage).filter(
-            ConversationMessage.conversation_id == conversation.id
-        ).order_by(ConversationMessage.created_at.desc()).first()
-        
-        should_save_user_msg = True
-        if last_message and last_message.role == "user":
-            # Simple check: if the last user message contains the current query (case-insensitive)
-            # This prevents saving "red mazda" again if user just typed "I want a red mazda"
-            if query.lower().strip() in last_message.content.lower().strip():
-                should_save_user_msg = False
-                logger.info("skipping_duplicate_user_message", query=query)
-        
-        if should_save_user_msg:
-            # Save user's query as a message
-            user_message = ConversationMessage(
-                conversation_id=conversation.id,
-                role="user",
-                content=query,
-                created_at=datetime.utcnow()
-            )
-            db.add(user_message)
-        
-        # Save assistant's response
-        assistant_message = ConversationMessage(
-            conversation_id=conversation.id,
-            role="assistant",
-            content=summary,
-            created_at=datetime.utcnow()
-        )
-        db.add(assistant_message)
-        
-        # Save search record
-        search = Search(
-            user_id=user_id,
-            query=query,
-            created_at=datetime.utcnow()
-        )
-        db.add(search)
-        db.flush()
-        
-        # Save each car result
-        saved_count = 0
-        for car_data in results:
-            try:
-                vin = car_data.get("vin")
-                
-                # Check if car already exists (skip for now)
-                existing_car = None
-                
-                if not existing_car:
-                    # Create new car with all data in car_data JSON field
-                    car = Car(
-                        car_data={
-                            "vin": vin,
-                            "brand": car_data.get("brand"),
-                            "model": car_data.get("model"),
-                            "year": car_data.get("year"),
-                            "price": car_data.get("price"),
-                            "location": car_data.get("location"),
-                            "dealer": car_data.get("dealer"),
-                            "images": car_data.get("images", [])[:3],
-                            "relevance_score": car_data.get("relevance_score", 0.0)
-                        },
-                        active=True,
-                        created_at=datetime.utcnow()
-                    )
-                    db.add(car)
-                    db.flush()
-                    car_id = car.id
-                else:
-                    car_id = existing_car.id
-                
-                # Link car to search
-                # Get match_score from internal ranking (stored as match_score)
-                match_score = car_data.get("match_score", 0.0)
-                # Convert to 0-1 range if needed
-                if match_score > 1:
-                    match_score = match_score / 100.0
-                
-                search_result = SearchResult(
-                    search_id=search.id,
-                    car_id=car_id,
-                    rank=saved_count + 1,
-                    match_score=match_score
-                )
-                db.add(search_result)
-                saved_count += 1
-                
-            except Exception as e:
-                logger.warning("failed_to_save_car", error=str(e), vin=car_data.get("vin"))
-                continue
-        
-        db.commit()
-        
-        logger.info(
-            "search_results_saved",
-            user_id=user_id,
-            search_id=search.id,
-            cars_saved=saved_count,
-            message_id=assistant_message.id
-        )
-        
-        return {
-            "success": True,
-            "search_id": search.id,
-            "cars_saved": saved_count,
-            "message_id": assistant_message.id,
-            "conversation_id": conversation.id
-        }
-        
-    except Exception as e:
-        db.rollback()
-        logger.error("save_search_error", error=str(e), user_id=user_id)
-        return {
-            "success": False,
-            "error": str(e)
-        }
-    finally:
-        db.close()
-
-
-@tool
-def post_message_to_user(user_id: int, message: str) -> Dict[str, Any]:
-    """
-    Post a message to the user's conversation.
-    Use this when you want to communicate with the user (e.g., no results found, need clarification).
-    
-    Args:
-        user_id: The user's ID
-        message: Your message to the user
-        
-    Returns:
-        Dictionary with success status and message ID
-    """
-    from db.base import SessionLocal
-    from db.models import Conversation, ConversationMessage
-    from datetime import datetime
-    
-    logger.info("tool_post_message", user_id=user_id, message_length=len(message))
+    logger.info("tool_save_start", user_id=user_id, results_count=len(results))
     
     db = SessionLocal()
     try:
@@ -377,44 +240,165 @@ def post_message_to_user(user_id: int, message: str) -> Dict[str, Any]:
         if not conversation:
             conversation = Conversation(
                 user_id=user_id,
-                title="Car Search Assistant",
+                title="Car Search",
                 created_at=datetime.utcnow()
             )
             db.add(conversation)
             db.flush()
         
-        # Save assistant's message
-        assistant_message = ConversationMessage(
+        # Check for duplicate message
+        last_msg = db.query(ConversationMessage).filter(
+            ConversationMessage.conversation_id == conversation.id
+        ).order_by(ConversationMessage.created_at.desc()).first()
+        
+        if not (last_msg and last_msg.role == "user" and query.lower() in last_msg.content.lower()):
+            db.add(ConversationMessage(
+                conversation_id=conversation.id,
+                role="user",
+                content=query,
+                created_at=datetime.utcnow()
+            ))
+        
+        # Add assistant response
+        db.add(ConversationMessage(
             conversation_id=conversation.id,
             role="assistant",
-            content=message,
+            content=summary,
+            created_at=datetime.utcnow()
+        ))
+        
+        # Create search record
+        search = Search(
+            user_id=user_id,
+            query=query,
             created_at=datetime.utcnow()
         )
-        db.add(assistant_message)
+        db.add(search)
+        db.flush()
+        
+        # Save cars
+        saved_count = 0
+        for i, car_data in enumerate(results):
+            try:
+                match_score = car_data.get("match_score", 50)
+                if match_score > 1:
+                    match_score = match_score / 100.0
+                
+                car = Car(
+                    car_data={
+                        "vin": car_data.get("vin") or "",
+                        "brand": car_data.get("brand"),
+                        "model": car_data.get("model"),
+                        "year": car_data.get("year"),
+                        "price": car_data.get("price"),
+                        "location": car_data.get("location"),
+                        "dealer": car_data.get("dealer"),
+                        "images": car_data.get("images", [])[:3],
+                    },
+                    active=True,
+                    created_at=datetime.utcnow()
+                )
+                db.add(car)
+                db.flush()
+                
+                db.add(SearchResult(
+                    search_id=search.id,
+                    car_id=car.id,
+                    rank=i + 1,
+                    match_score=match_score
+                ))
+                saved_count += 1
+                
+            except Exception as e:
+                logger.warning("car_save_failed", error=str(e))
+                continue
+        
         db.commit()
         
-        logger.info("message_posted", message_id=assistant_message.id, user_id=user_id)
+        logger.info(
+            "tool_save_complete",
+            search_id=search.id,
+            cars_saved=saved_count
+        )
         
         return {
             "success": True,
-            "message_id": assistant_message.id,
+            "search_id": search.id,
+            "cars_saved": saved_count,
             "conversation_id": conversation.id
         }
         
     except Exception as e:
         db.rollback()
-        logger.error("post_message_error", error=str(e), user_id=user_id)
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        logger.error("tool_save_error", error=str(e))
+        return {"success": False, "error": str(e)}
     finally:
         db.close()
 
+
+@tool
+def send_message_to_user(user_id: int, message: str) -> Dict[str, Any]:
+    """
+    Send a message to user's conversation (no car results).
+    
+    Args:
+        user_id: User's ID
+        message: Message content
+    
+    Returns:
+        Dict with message_id and success status
+    """
+    from db.base import SessionLocal
+    from db.models import Conversation, ConversationMessage
+    
+    logger.info("tool_message_start", user_id=user_id)
+    
+    db = SessionLocal()
+    try:
+        conversation = db.query(Conversation).filter(
+            Conversation.user_id == user_id
+        ).first()
+        
+        if not conversation:
+            conversation = Conversation(
+                user_id=user_id,
+                title="Car Search",
+                created_at=datetime.utcnow()
+            )
+            db.add(conversation)
+            db.flush()
+        
+        msg = ConversationMessage(
+            conversation_id=conversation.id,
+            role="assistant",
+            content=message,
+            created_at=datetime.utcnow()
+        )
+        db.add(msg)
+        db.commit()
+        
+        logger.info("tool_message_complete", message_id=msg.id)
+        
+        return {
+            "success": True,
+            "message_id": msg.id,
+            "conversation_id": conversation.id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("tool_message_error", error=str(e))
+        return {"success": False, "error": str(e)}
+    finally:
+        db.close()
+
+
+# Backwards compatibility alias
+post_message_to_user = send_message_to_user
 
 # Export all tools
 ALL_TOOLS = [
     search_car_listings,
     save_search_results,
-    post_message_to_user
+    send_message_to_user
 ]

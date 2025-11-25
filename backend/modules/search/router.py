@@ -110,9 +110,18 @@ async def search_cars_with_agent(
     # Build user context
     user_context = _build_user_context(user_id, current_user, db)
     
-    # Run ReAct agent
+    # Run ReAct agent with timeout to prevent hanging
     logger.info("agent_search_start", query=request.query, user_id=user_id)
-    result = await car_search_agent.search(request.query, user_context, db)
+    
+    import asyncio
+    try:
+        result = await asyncio.wait_for(
+            car_search_agent.search(request.query, user_context, db),
+            timeout=60.0  # 60 second timeout
+        )
+    except asyncio.TimeoutError:
+        logger.error("agent_timeout", query=request.query, user_id=user_id)
+        raise AppException("Search is taking too long. Please try a simpler query or try again.", 408)
     
     logger.info(
         "agent_search_complete",
@@ -217,11 +226,16 @@ async def get_personalized_recommendations(
             brands = ", ".join(user_context["preferences"]["preferred_brands"][:2])
             query = f"Show me {brands} cars that match my preferences"
     
-    # Run agent
-    # Note: We run search again to get fresh results? 
-    # Or should we just return the saved results if it was recent?
-    # For now, let's re-run search to ensure freshness and correctness
-    result = await car_search_agent.search(query, user_context, db)
+    # Run agent with timeout
+    import asyncio
+    try:
+        result = await asyncio.wait_for(
+            car_search_agent.search(query, user_context, db),
+            timeout=60.0
+        )
+    except asyncio.TimeoutError:
+        logger.error("agent_timeout_personalized", query=query, user_id=user_id)
+        raise AppException("Search is taking too long. Please try again.", 408)
     
     used_query = result.get("query", query)
     

@@ -31,12 +31,15 @@ class CarSearchAgent:
             streaming=False
         )
         
-        # Create ReAct agent with tools
+        # Create ReAct agent with tools and max iterations to prevent infinite loops
         self.agent = create_react_agent(
             self.llm,
             ALL_TOOLS,
             state_modifier=self._build_system_prompt()
         )
+        
+        # Set max iterations to prevent agent from getting stuck
+        self.max_iterations = 10
         
         logger.info(
             "react_agent_initialized",
@@ -141,10 +144,11 @@ Remember: You are a helpful assistant. Be concise but informative."""
             user_message = self._build_user_message(query, user_context)
             messages.append(user_message)
             
-            # 3. Run the agent
-            result = await self.agent.ainvoke({
-                "messages": messages
-            })
+            # 3. Run the agent with recursion limit to prevent infinite loops
+            result = await self.agent.ainvoke(
+                {"messages": messages},
+                config={"recursion_limit": self.max_iterations}
+            )
             
             # Extract final response
             response_messages = result.get("messages", [])

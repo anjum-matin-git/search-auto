@@ -121,12 +121,19 @@ Remember: You are a helpful assistant. Be concise but informative."""
         
         try:
             messages = []
+            history = []
             
             # 1. Fetch history if available
             if db and user_context and user_context.get("user_id"):
                 user_id = user_context["user_id"]
                 history = self._fetch_conversation_history(db, user_id)
                 if history:
+                    # Contextualize query if history exists
+                    rewritten_query = await self._contextualize_query(history, query)
+                    if rewritten_query != query:
+                        logger.info("query_rewritten", original=query, new=rewritten_query)
+                        query = rewritten_query
+                    
                     messages.extend(history)
                     logger.info("history_loaded", messages_count=len(history))
             
@@ -193,6 +200,51 @@ Remember: You are a helpful assistant. Be concise but informative."""
                 "error": str(e)
             }
     
+    async def _contextualize_query(self, history: List[Any], query: str) -> str:
+        """Rewrite user query based on conversation history."""
+        try:
+            # Format history for prompt
+            history_text = ""
+            for msg in history[-6:]:  # Look at last few turns
+                role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+                content = msg.content
+                history_text += f"{role}: {content}\n"
+            
+            system_prompt = """Given the conversation history below, rewrite the latest user input to be a standalone search query.
+If the user refers to previous results (e.g. "more", "next", "cheaper", "red ones"), explicitly include the parameters from the previous search context.
+If the input is already standalone or completely new topic, return it as is.
+Do NOT answer the question, just rewrite the query.
+
+Example 1:
+History:
+User: Red Mazda
+Assistant: Here are some red Mazdas...
+User: Show me more
+Rewritten: Search for more red Mazda cars (page 2)
+
+Example 2:
+History:
+User: BMW X5
+Assistant: Found 3 BMW X5s...
+User: How about Audi Q7?
+Rewritten: Audi Q7
+
+History:
+{history}
+
+User Input: {query}
+
+Rewritten Query:"""
+            
+            prompt = system_prompt.replace("{history}", history_text).replace("{query}", query)
+            
+            response = await self.llm.ainvoke([HumanMessage(content=prompt)])
+            return response.content.strip()
+            
+        except Exception as e:
+            logger.warning("query_contextualization_failed", error=str(e))
+            return query
+
     def _fetch_conversation_history(self, db: Session, user_id: int) -> List[Any]:
         """Fetch recent conversation history for context."""
         try:

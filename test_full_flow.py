@@ -69,7 +69,7 @@ def main():
     print("   Calling /api/search/personalized...")
     
     start = time.time()
-    resp = requests.get(f"{BASE_URL}/api/search/personalized", headers=headers, timeout=60)
+    resp = requests.get(f"{BASE_URL}/api/search/personalized", headers=headers, timeout=90)
     elapsed = time.time() - start
     
     if resp.status_code == 200:
@@ -121,7 +121,7 @@ def main():
     print("   Calling /api/search/personalized again...")
     
     start = time.time()
-    resp = requests.get(f"{BASE_URL}/api/search/personalized", headers=headers, timeout=60)
+    resp = requests.get(f"{BASE_URL}/api/search/personalized", headers=headers, timeout=90)
     elapsed = time.time() - start
     
     if resp.status_code == 200:

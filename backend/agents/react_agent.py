@@ -1,11 +1,11 @@
 """
-World-class ReAct agent using LangGraph's create_react_agent.
-Autonomous car search with intelligent tool usage.
+Robust car search agent using Claude.
+Deterministic workflow with proper error handling.
 """
 from typing import Dict, Any, Optional, List
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from sqlalchemy.orm import Session
 
 from agents.tools import ALL_TOOLS
@@ -17,91 +17,77 @@ logger = get_logger(__name__)
 
 class CarSearchAgent:
     """
-    Autonomous ReAct agent for car search.
-    Uses LangGraph's built-in create_react_agent for optimal performance.
+    Robust car search agent using Claude.
+    Workflow: Search -> Save -> Done.
     """
     
     def __init__(self):
-        # Initialize LLM
-        # Note: Some models (like o1-preview) only support temperature=1
-        # Explicitly set to 1 for compatibility with all models
-        self.llm = ChatOpenAI(
-            model=settings.openai_model,
-            temperature=1,  # Required for models like o1-preview
-            streaming=False
+        # Initialize Claude LLM
+        self.llm = ChatAnthropic(
+            model=settings.anthropic_model,
+            anthropic_api_key=settings.anthropic_api_key,
+            max_tokens=1024,
+            timeout=30.0,
         )
         
-        # Create ReAct agent with tools and max iterations to prevent infinite loops
+        # Create ReAct agent
         self.agent = create_react_agent(
             self.llm,
             ALL_TOOLS,
             state_modifier=self._build_system_prompt()
         )
         
-        # Set max iterations to prevent agent from getting stuck
+        # Allow enough iterations for: search + save + response
         self.max_iterations = 10
         
         logger.info(
             "react_agent_initialized",
-            model=settings.openai_model,
+            model=settings.anthropic_model,
             tools=len(ALL_TOOLS)
         )
     
     def _build_system_prompt(self) -> str:
-        """Build comprehensive system prompt for the agent."""
-        return """You are SearchAuto's expert automotive concierge. Your goal is to help users find their dream car with precision, speed, and helpfulness.
-
-CAPABILITIES:
-- You can search real dealer inventory across the US and Canada.
-- You can filter by price, brand, model, year, features (e.g., "sunroof", "AWD", "leather"), and location.
-- You can rank results by relevance to the user's specific query.
-- You can handle pagination (showing more results) if the user asks.
+        """Build action-oriented system prompt."""
+        return """You are SearchAuto's car search assistant. Your job is to find cars and save results.
 
 AVAILABLE TOOLS:
-1. search_car_listings - Find, filter, and rank cars. Supports pagination (limit, page).
-2. save_search_results - Save your findings and post results to the user's conversation.
-3. post_message_to_user - Send a message to the user (for clarifications, no results, etc.).
+1. search_car_listings - Find cars from dealer inventory
+2. save_search_results - REQUIRED: Save results so user sees car cards
+3. post_message_to_user - Send message without car results
 
-WORKFLOW (MUST FOLLOW EVERY TIME):
-1. search_car_listings - Call with all inferred parameters.
-   - If user asks for "more", increment the `page` parameter.
-   - If specific features are mentioned (e.g. "red", "electric"), pass them in `required_features`.
-   - Always pass `user_query` for intelligent ranking.
-2. **MANDATORY**: save_search_results - Save the cars you found.
-   - Provide a helpful, engaging summary in the `summary` field. Mention key highlights of the top car.
+CRITICAL WORKFLOW - YOU MUST COMPLETE BOTH STEPS:
 
-CRITICAL RULES:
-- You MUST call save_search_results as your FINAL step when you find cars.
-- WITHOUT save_search_results, the user will NOT see any car cards.
-- If no cars found, use post_message_to_user to inform the user and suggest alternatives.
-- Be proactive: if a user searches for "cheap cars", infer a reasonable price cap (e.g., $15k-$20k) if not specified.
-- If the user asks for "more", use `page=2` in `search_car_listings`.
+Step 1: Call search_car_listings with parameters from user query
+Step 2: Call save_search_results with the results (THIS IS MANDATORY)
 
-EXAMPLE WORKFLOW (New Search):
-User: "Electric SUV under $60k"
-1. search_car_listings(
-     price_max=60000, 
-     required_features=["electric", "SUV"], 
-     user_query="Electric SUV under $60k"
-   )
-2. save_search_results(
-     user_id=123,
-     query="Electric SUV under $60k",
-     results=[...],
-     summary="I found 3 great electric SUVs under $60k..."
-   )
+If you skip save_search_results, the user will NOT see any cars!
 
-EXAMPLE WORKFLOW (Pagination):
-User: "Show me more"
-1. search_car_listings(
-     price_max=60000, 
-     required_features=["electric", "SUV"], 
-     user_query="Electric SUV under $60k",
-     page=2
-   )
-2. save_search_results(...)
+PARAMETER EXTRACTION:
+- Brand: "Toyota", "BMW", "Mazda" etc
+- Price: "under $30k" = price_max=30000
+- Features: colors ("red", "blue"), types ("SUV", "sedan"), features ("AWD", "sunroof")
+- Pagination: "more" or "next" = page=2
 
-Remember: You are a helpful assistant. Be concise but informative."""
+EXAMPLES:
+
+Query: "Red Toyota under $30k"
+→ search_car_listings(brand="Toyota", price_max=30000, required_features=["red"], user_query="Red Toyota under $30k")
+→ save_search_results(user_id=X, query="Red Toyota under $30k", results=[...], summary="Found X red Toyotas...")
+
+Query: "Show me more"
+→ search_car_listings(page=2, ...[same params as before])
+→ save_search_results(...)
+
+Query: "BMW or Audi"
+→ search_car_listings(brand="BMW", limit=5)
+→ search_car_listings(brand="Audi", limit=5)
+→ save_search_results(...combined results...)
+
+RULES:
+- ALWAYS call save_search_results after finding cars
+- Keep summary under 50 words
+- If no cars found, use post_message_to_user to explain
+- Extract user_id from the context provided"""
     
     async def search(
         self,
@@ -109,54 +95,36 @@ Remember: You are a helpful assistant. Be concise but informative."""
         user_context: Optional[Dict[str, Any]] = None,
         db: Optional[Session] = None
     ) -> Dict[str, Any]:
-        """
-        Execute autonomous car search.
-        
-        Args:
-            query: User's natural language query
-            user_context: Optional context (location, preferences, etc.)
-            db: Optional database session for history retrieval
-            
-        Returns:
-            Search results with agent's analysis
-        """
-        logger.info("agent_search_start", query=query)
+        """Execute car search."""
+        user_id = user_context.get("user_id") if user_context else None
+        logger.info("agent_search_start", query=query, user_id=user_id)
         
         try:
             messages = []
-            history = []
             
-            # 1. Fetch history if available
-            if db and user_context and user_context.get("user_id"):
-                user_id = user_context["user_id"]
+            # Load history for context
+            if db and user_id:
                 history = self._fetch_conversation_history(db, user_id)
                 if history:
-                    # Contextualize query if history exists
-                    rewritten_query = await self._contextualize_query(history, query)
-                    if rewritten_query != query:
-                        logger.info("query_rewritten", original=query, new=rewritten_query)
-                        query = rewritten_query
-                    
-                    messages.extend(history)
+                    query = await self._contextualize_query(history, query)
+                    messages.extend(history[-4:])
                     logger.info("history_loaded", messages_count=len(history))
             
-            # 2. Build current user message
+            # Build user message
             user_message = self._build_user_message(query, user_context)
             messages.append(user_message)
             
-            # 3. Run the agent with recursion limit to prevent infinite loops
+            # Run agent
             result = await self.agent.ainvoke(
                 {"messages": messages},
                 config={"recursion_limit": self.max_iterations}
             )
             
-            # Extract final response
+            # Extract response
             response_messages = result.get("messages", [])
             final_message = response_messages[-1] if response_messages else None
+            response_text = final_message.content if final_message else "Search completed."
             
-            response_text = final_message.content if final_message else "No results found"
-            
-            # Count tool calls
             tool_calls = sum(
                 1 for msg in response_messages 
                 if hasattr(msg, "tool_calls") and msg.tool_calls
@@ -176,28 +144,20 @@ Remember: You are a helpful assistant. Be concise but informative."""
             }
             
         except Exception as e:
-            logger.error(
-                "agent_search_error",
-                query=query,
-                error=str(e),
-                error_type=type(e).__name__
-            )
+            error_type = type(e).__name__
+            logger.error("agent_search_error", query=query, error=str(e), error_type=error_type)
             
-            # Return a user-friendly error response
-            error_message = "I apologize, but I encountered an error while searching for cars. "
-            
-            # Provide specific error messages for common issues
-            if "rate_limit" in str(e).lower():
-                error_message += "The AI service is currently rate limited. Please try again in a moment."
-            elif "api_key" in str(e).lower() or "authentication" in str(e).lower():
-                error_message += "There's an authentication issue with the AI service. Please contact support."
-            elif "timeout" in str(e).lower():
-                error_message += "The request timed out. Please try again."
+            if "timeout" in str(e).lower():
+                error_msg = "Search timed out. Please try a simpler query."
+            elif "rate_limit" in str(e).lower():
+                error_msg = "High demand. Please try again in a moment."
+            elif "credit" in str(e).lower() or "balance" in str(e).lower():
+                error_msg = "AI service temporarily unavailable. Please try again."
             else:
-                error_message += "Please try again or contact support if the issue persists."
+                error_msg = "Something went wrong. Please try again."
             
             return {
-                "response": error_message,
+                "response": error_msg,
                 "query": query,
                 "tool_calls_made": 0,
                 "messages": [],
@@ -205,61 +165,32 @@ Remember: You are a helpful assistant. Be concise but informative."""
             }
     
     async def _contextualize_query(self, history: List[Any], query: str) -> str:
-        """Rewrite user query based on conversation history."""
-        try:
-            # Format history for prompt
-            history_text = ""
-            for msg in history[-6:]:  # Look at last few turns
-                role = "User" if isinstance(msg, HumanMessage) else "Assistant"
-                content = msg.content
-                history_text += f"{role}: {content}\n"
-            
-            system_prompt = """Given the conversation history below, rewrite the latest user input to be a standalone search query.
-If the user refers to previous results (e.g. "more", "next", "cheaper", "red ones"), explicitly include the parameters from the previous search context.
-If the input is already standalone or completely new topic, return it as is.
-Do NOT answer the question, just rewrite the query.
-
-Example 1:
-History:
-User: Red Mazda
-Assistant: Here are some red Mazdas...
-User: Show me more
-Rewritten: Search for more red Mazda cars (page 2)
-
-Example 2:
-History:
-User: BMW X5
-Assistant: Found 3 BMW X5s...
-User: How about Audi Q7?
-Rewritten: Audi Q7
-
-History:
-{history}
-
-User Input: {query}
-
-Rewritten Query:"""
-            
-            prompt = system_prompt.replace("{history}", history_text).replace("{query}", query)
-            
-            response = await self.llm.ainvoke([HumanMessage(content=prompt)])
-            return response.content.strip()
-            
-        except Exception as e:
-            logger.warning("query_contextualization_failed", error=str(e))
+        """Rewrite vague follow-up queries."""
+        query_lower = query.lower().strip()
+        
+        follow_ups = ["more", "next", "another", "again", "different", "else", "other"]
+        if not any(p in query_lower for p in follow_ups):
             return query
-
+        
+        # Find last real search
+        for msg in reversed(history):
+            if isinstance(msg, HumanMessage):
+                content = msg.content.lower()
+                if not any(p in content for p in follow_ups):
+                    if "more" in query_lower:
+                        return f"{msg.content} (page 2)"
+                    return f"{msg.content} - {query}"
+                    break
+        
+        return query
+    
     def _fetch_conversation_history(self, db: Session, user_id: int) -> List[Any]:
-        """Fetch recent conversation history for context."""
+        """Fetch recent conversation."""
         try:
             from db.repositories import ConversationRepository
             repo = ConversationRepository(db)
-            
-            # Get/Create conversation to ensure we have the ID
             conversation = repo.get_or_create(user_id)
-            
-            # Fetch last 10 messages
-            messages = repo.list_messages(conversation.id, limit=10)
+            messages = repo.list_messages(conversation.id, limit=6)
             
             history = []
             for msg in messages:
@@ -270,43 +201,34 @@ Rewritten Query:"""
             
             return history
         except Exception as e:
-            logger.warning("failed_to_load_history", error=str(e), user_id=user_id)
+            logger.warning("history_load_failed", error=str(e), user_id=user_id)
             return []
-
+    
     def _build_user_message(
         self,
         query: str,
         user_context: Optional[Dict[str, Any]]
     ) -> HumanMessage:
-        """Build context-aware user message."""
-        message = f"User query: {query}"
+        """Build user message with context."""
+        parts = [f"Search request: {query}"]
         
         if user_context:
-            context_parts = []
-            
-            # Add user_id for tools to use
             if user_context.get("user_id"):
-                context_parts.append(f"User ID: {user_context['user_id']} (use this when calling save_search_results or post_message_to_user)")
-            
+                parts.append(f"User ID: {user_context['user_id']} (use this for save_search_results)")
             if user_context.get("location"):
-                context_parts.append(f"Location: {user_context['location']}")
-            
+                parts.append(f"Location: {user_context['location']}")
             if user_context.get("postal_code"):
-                context_parts.append(f"Postal Code: {user_context['postal_code']}")
+                parts.append(f"Postal: {user_context['postal_code']}")
             
-            if user_context.get("preferences"):
-                prefs = user_context["preferences"]
-                if prefs.get("preferred_brands"):
-                    context_parts.append(f"Preferred Brands: {', '.join(prefs['preferred_brands'])}")
-                if prefs.get("preferred_types"):
-                    context_parts.append(f"Preferred Types: {', '.join(prefs['preferred_types'])}")
-                if prefs.get("budget"):
-                    context_parts.append(f"Budget: ${prefs['budget']}")
-            
-            if context_parts:
-                message += f"\n\nUser Context:\n" + "\n".join(f"- {p}" for p in context_parts)
+            prefs = user_context.get("preferences", {})
+            if prefs.get("preferred_brands"):
+                parts.append(f"Preferred brands: {', '.join(prefs['preferred_brands'][:2])}")
+            if prefs.get("budget"):
+                parts.append(f"Budget: ${prefs['budget']}")
         
-        return HumanMessage(content=message)
+        parts.append("\nRemember: You MUST call save_search_results after finding cars!")
+        
+        return HumanMessage(content="\n".join(parts))
 
 
 # Global agent instance

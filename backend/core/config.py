@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     # Database
     database_url: str = Field(..., alias="DATABASE_URL")
     
-    # OpenAI
-    openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
-    openai_model: str = "gpt-5"
+    # Anthropic (Claude) - Primary AI
+    anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
+    anthropic_model: str = Field(default="claude-sonnet-4-20250514", alias="ANTHROPIC_MODEL")
+    
+    # OpenAI - Fallback/Embeddings only
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_embedding_model: str = "text-embedding-3-small"
     
     # Security
@@ -33,10 +36,7 @@ class Settings(BaseSettings):
     
     # Search
     max_search_results: int = 10
-    scraping_timeout_seconds: int = 30
-
-    # External integrations
-    # Add any future API keys here
+    agent_timeout_seconds: int = 90  # Max time for agent to respond
     
     model_config = SettingsConfigDict(
         env_file=".env",

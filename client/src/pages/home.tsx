@@ -126,11 +126,24 @@ export default function Home() {
   }, [chatEnabled, assistantOpen]);
 
   const loadingSteps = [
-    { icon: Search, text: "Analyzing query", done: true },
-    { icon: Car, text: "Searching listings", done: true },
-    { icon: Brain, text: "AI matching", done: false },
-    { icon: Sparkles, text: "Ranking results", done: false },
+    { icon: Search, text: "Analyzing query", description: "Understanding your preferences" },
+    { icon: Car, text: "Searching listings", description: "Scanning dealer inventory" },
+    { icon: Brain, text: "AI matching", description: "Finding the best matches" },
+    { icon: Sparkles, text: "Ranking results", description: "Prioritizing top picks" },
   ];
+  
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Auto-advance loading steps
+  useEffect(() => {
+    if (searchMutation.isPending) {
+      setCurrentStep(0);
+      const interval = setInterval(() => {
+        setCurrentStep(prev => (prev < loadingSteps.length - 1 ? prev + 1 : prev));
+      }, 1200);
+      return () => clearInterval(interval);
+    }
+  }, [searchMutation.isPending]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body">
@@ -153,107 +166,215 @@ export default function Home() {
       <main className={`transition-all duration-300 ${assistantOpen && chatEnabled && !isMobile ? "lg:pr-[450px]" : ""}`}>
         <Hero onSearch={handleSearch} isSearching={searchMutation.isPending} />
         
-        {/* Beautiful Loading State with Car Animation */}
+        {/* Beautiful Loading State - Animated Slider */}
         <AnimatePresence>
           {searchMutation.isPending && (
             <motion.section 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="py-32 container mx-auto px-4 sm:px-6"
+              className="py-20 sm:py-32 container mx-auto px-4 sm:px-6 overflow-hidden"
             >
-              <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center">
-                {/* Animated Car with Thinking Brain */}
-                <div className="relative mb-12">
-                  {/* Pulse rings */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-40 h-40 rounded-full border border-primary/20 pulse-ring" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-40 h-40 rounded-full border border-primary/10 pulse-ring" style={{ animationDelay: '0.5s' }} />
-                  </div>
-                  
-                  {/* Main container */}
+              <div className="flex flex-col items-center justify-center max-w-2xl mx-auto">
+                {/* Animated Slider Card */}
+                <div className="relative w-full">
+                  {/* Background glow effect */}
                   <motion.div 
-                    className="relative w-40 h-40 rounded-3xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-2xl"
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {/* Scan line effect */}
-                    <div className="absolute inset-0 overflow-hidden">
-                      <div className="absolute left-0 right-0 h-12 bg-gradient-to-b from-transparent via-primary/10 to-transparent scan-line" />
+                    className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/5 to-primary/20 rounded-3xl blur-3xl"
+                    animate={{ 
+                      opacity: [0.3, 0.6, 0.3],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                  
+                  {/* Main slider container */}
+                  <div className="relative bg-card/80 backdrop-blur-xl rounded-3xl border border-border/50 p-8 sm:p-12 shadow-2xl overflow-hidden">
+                    {/* Animated gradient border */}
+                    <div className="absolute inset-0 rounded-3xl overflow-hidden">
+                      <motion.div 
+                        className="absolute inset-[-2px] bg-gradient-to-r from-primary via-primary/50 to-primary rounded-3xl"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        style={{ opacity: 0.1 }}
+                      />
                     </div>
                     
-                    {/* Car icon */}
-                    <div className="car-drive transform scale-125">
-                      <CarIcon className="w-20 h-10 text-foreground car-bounce" />
+                    {/* Progress bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-secondary/50 overflow-hidden rounded-t-3xl">
+                      <motion.div 
+                        className="h-full bg-gradient-to-r from-primary to-primary/60"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${((currentStep + 1) / loadingSteps.length) * 100}%` }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                      />
                     </div>
                     
-                    {/* Brain indicator */}
-                    <motion.div 
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg"
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    >
-                      <Brain className="w-4 h-4 text-primary-foreground" />
-                    </motion.div>
-                  </motion.div>
-                </div>
-                
-                {/* Text */}
-                <motion.h2 
-                  className="text-2xl font-display font-bold text-foreground mb-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  AI is searching
-                </motion.h2>
-                <motion.p 
-                  className="text-muted-foreground mb-10 font-light"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  Analyzing thousands of listings for you...
-                </motion.p>
-                
-                {/* Animated steps */}
-                <div className="w-full space-y-3">
-                  {loadingSteps.map((step, i) => {
-                    const Icon = step.icon;
-                    return (
-                      <motion.div
-                        key={step.text}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + i * 0.15 }}
-                        className="flex items-center gap-4 px-5 py-4 bg-card rounded-xl border border-border shadow-sm"
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          i <= 1 ? 'bg-primary/10' : 'bg-secondary'
-                        }`}>
-                          <Icon className={`w-5 h-5 ${i <= 1 ? 'text-primary' : 'text-muted-foreground'}`} />
-                        </div>
-                        <span className={`text-sm font-medium ${i <= 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          {step.text}
-                        </span>
-                        {i <= 1 && (
-                          <motion.div 
-                            className="ml-auto flex gap-1"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.6 + i * 0.2 }}
+                    {/* Slider content */}
+                    <div className="relative h-48 sm:h-56">
+                      <AnimatePresence mode="wait">
+                        {loadingSteps.map((step, i) => {
+                          const Icon = step.icon;
+                          if (i !== currentStep) return null;
+                          
+                          return (
+                            <motion.div
+                              key={step.text}
+                              initial={{ opacity: 0, x: 100, scale: 0.9 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              exit={{ opacity: 0, x: -100, scale: 0.9 }}
+                              transition={{ 
+                                duration: 0.5, 
+                                ease: [0.25, 0.46, 0.45, 0.94]
+                              }}
+                              className="absolute inset-0 flex flex-col items-center justify-center text-center"
+                            >
+                              {/* Icon with animated rings */}
+                              <div className="relative mb-6">
+                                {/* Outer pulse ring */}
+                                <motion.div 
+                                  className="absolute inset-0 rounded-full border-2 border-primary/30"
+                                  initial={{ scale: 1, opacity: 0.5 }}
+                                  animate={{ scale: 2, opacity: 0 }}
+                                  transition={{ duration: 1.5, repeat: Infinity }}
+                                  style={{ width: 80, height: 80, margin: -12 }}
+                                />
+                                {/* Inner pulse ring */}
+                                <motion.div 
+                                  className="absolute inset-0 rounded-full border border-primary/20"
+                                  initial={{ scale: 1, opacity: 0.3 }}
+                                  animate={{ scale: 1.5, opacity: 0 }}
+                                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
+                                  style={{ width: 80, height: 80, margin: -12 }}
+                                />
+                                
+                                {/* Icon container */}
+                                <motion.div 
+                                  className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25"
+                                  animate={{ 
+                                    rotate: [0, 5, -5, 0],
+                                    scale: [1, 1.05, 1]
+                                  }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                >
+                                  <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary-foreground" />
+                                </motion.div>
+                              </div>
+                              
+                              {/* Text content */}
+                              <motion.h3 
+                                className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                              >
+                                {step.text}
+                              </motion.h3>
+                              <motion.p 
+                                className="text-sm sm:text-base text-muted-foreground"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                              >
+                                {step.description}
+                              </motion.p>
+                              
+                              {/* Animated dots */}
+                              <motion.div 
+                                className="flex gap-1.5 mt-4"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.4 }}
+                              >
+                                {[0, 1, 2].map((dot) => (
+                                  <motion.div
+                                    key={dot}
+                                    className="w-2 h-2 rounded-full bg-primary"
+                                    animate={{ 
+                                      scale: [1, 1.5, 1],
+                                      opacity: [0.5, 1, 0.5]
+                                    }}
+                                    transition={{ 
+                                      duration: 1, 
+                                      repeat: Infinity,
+                                      delay: dot * 0.2
+                                    }}
+                                  />
+                                ))}
+                              </motion.div>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                    
+                    {/* Step indicators */}
+                    <div className="flex justify-center gap-3 mt-6">
+                      {loadingSteps.map((step, i) => {
+                        const Icon = step.icon;
+                        const isActive = i === currentStep;
+                        const isDone = i < currentStep;
+                        
+                        return (
+                          <motion.div
+                            key={i}
+                            className={`relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl transition-all duration-500 ${
+                              isActive 
+                                ? 'bg-primary shadow-lg shadow-primary/30' 
+                                : isDone 
+                                  ? 'bg-primary/20' 
+                                  : 'bg-secondary/50'
+                            }`}
+                            animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                            transition={{ duration: 0.5 }}
                           >
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
+                            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                              isActive 
+                                ? 'text-primary-foreground' 
+                                : isDone 
+                                  ? 'text-primary' 
+                                  : 'text-muted-foreground/50'
+                            }`} />
+                            
+                            {/* Active indicator ring */}
+                            {isActive && (
+                              <motion.div 
+                                className="absolute inset-0 rounded-xl border-2 border-primary"
+                                initial={{ scale: 1, opacity: 1 }}
+                                animate={{ scale: 1.3, opacity: 0 }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                              />
+                            )}
+                            
+                            {/* Checkmark for completed */}
+                            {isDone && (
+                              <motion.div 
+                                className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              >
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </motion.div>
+                            )}
                           </motion.div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Bottom text */}
+                <motion.p 
+                  className="mt-8 text-sm text-muted-foreground text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  Searching thousands of listings nationwide...
+                </motion.p>
               </div>
             </motion.section>
           )}

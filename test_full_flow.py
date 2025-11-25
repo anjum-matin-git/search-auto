@@ -115,6 +115,8 @@ def main():
         if results:
             first_car = results[0]
             print(f"   Top Result: {first_car.get('year')} {first_car.get('brand')} {first_car.get('model')}")
+            print(f"   Description: {first_car.get('description')}")
+            print(f"   Source URL: {first_car.get('sourceUrl', 'None')[:60]}...")
             
             # Verify color filtering (red)
             # Note: We rely on the agent description or our manual check from previous steps

@@ -3,6 +3,7 @@ Auto.dev API integration for real car listings.
 Provides access to dealer inventory with actual vehicle data and images.
 """
 from typing import List, Dict, Any, Optional
+from urllib.parse import quote_plus
 import os
 import math
 
@@ -228,9 +229,15 @@ class AutoDevAPI:
                 if trim:
                     description += f" {trim}"
                 
-                # Build full URL from vdpUrl (relative path)
-                vdp_url = listing.get("vdpUrl", "")
-                source_url = listing.get("clickoffUrl") or (f"https://www.auto.dev{vdp_url}" if vdp_url else "")
+                # Build a search URL to find the car at the dealer
+                # Auto.dev internal URLs don't work publicly, so we create a Google search
+                search_parts = [str(year), make, model, dealer_name]
+                if dealer_city:
+                    search_parts.append(dealer_city)
+                if dealer_state:
+                    search_parts.append(dealer_state)
+                search_query = " ".join(filter(None, search_parts))
+                source_url = f"https://www.google.com/search?q={quote_plus(search_query)}"
                 
                 converted_price = raw_price
                 if target_country == "CA" and isinstance(raw_price, (int, float)):

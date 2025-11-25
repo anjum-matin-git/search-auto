@@ -125,7 +125,8 @@ class AutoDevAPI:
         if radius:
             params["radius"] = radius
         
-        params["page_size"] = 9
+        params["page_size"] = query_params.get("limit", 20)
+        params["page"] = query_params.get("page", 1)
         
         return params
     

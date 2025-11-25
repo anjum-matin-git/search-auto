@@ -8,7 +8,7 @@ from typing import Optional
 
 from db.base import get_db
 from db.models import User
-from db.repositories import UserRepository, UserPreferenceRepository
+from db.repositories import UserRepository, UserPreferenceRepository, SearchRepository
 from core.jwt_auth import get_current_user_jwt
 from modules.search.schemas import SearchRequest, SearchResponse
 from agents.react_agent import car_search_agent
@@ -53,7 +53,7 @@ async def search_cars_with_agent(
     
     # Run ReAct agent
     logger.info("agent_search_start", query=request.query, user_id=user_id)
-    result = await car_search_agent.search(request.query, user_context)
+    result = await car_search_agent.search(request.query, user_context, db)
     
     logger.info(
         "agent_search_complete",
@@ -135,13 +135,21 @@ def _build_user_context(user_id: int, user: User, db: Session) -> dict:
     
     try:
         pref_repo = UserPreferenceRepository(db)
-        prefs = pref_repo.get_by_user_id(user_id)
+        prefs = pref_repo.get_by_user(user_id)
         
         if prefs:
             context["preferences"] = {
                 "preferred_brands": prefs.preferred_brands or [],
                 "preferred_types": prefs.preferred_types or [],
                 "budget": prefs.preferences.get("budget") if prefs.preferences else None
+            }
+        elif user.initial_preferences:
+            # Fallback to initial_preferences from signup
+            ip = user.initial_preferences
+            context["preferences"] = {
+                "preferred_brands": ip.get("brands") or [],
+                "preferred_types": ip.get("types") or [],
+                "budget": ip.get("price_max")
             }
     except Exception as e:
         logger.warning("failed_to_load_preferences", user_id=user_id, error=str(e))
@@ -163,14 +171,22 @@ async def get_personalized_recommendations(
     # Build context
     user_context = _build_user_context(user_id, current_user, db)
     
-    # Create query from preferences
-    query = "Show me cars that match my preferences"
-    if user_context["preferences"].get("preferred_brands"):
-        brands = ", ".join(user_context["preferences"]["preferred_brands"][:2])
-        query = f"Show me {brands} cars that match my preferences"
+    # Try to find last search first
+    search_repo = SearchRepository(db)
+    latest_search = search_repo.get_user_history(user_id, limit=1)
+    
+    if latest_search:
+        query = latest_search[0].query
+        logger.info("using_last_search_query", user_id=user_id, query=query)
+    else:
+        # Create query from preferences
+        query = "Show me cars that match my preferences"
+        if user_context["preferences"].get("preferred_brands"):
+            brands = ", ".join(user_context["preferences"]["preferred_brands"][:2])
+            query = f"Show me {brands} cars that match my preferences"
     
     # Run agent
-    result = await car_search_agent.search(query, user_context)
+    result = await car_search_agent.search(query, user_context, db)
     
     return {
         "success": True,

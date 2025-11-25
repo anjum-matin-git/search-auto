@@ -84,7 +84,9 @@ async def search_car_listings(
     postal_code: Optional[str] = None,
     country: str = "CA",
     required_features: Optional[List[str]] = None,
-    user_query: Optional[str] = None
+    user_query: Optional[str] = None,
+    limit: int = 10,
+    page: int = 1
 ) -> List[Dict[str, Any]]:
     """
     Search for car listings from Auto.dev API and filter/rank them in one step.
@@ -102,6 +104,8 @@ async def search_car_listings(
         country: Country code (CA or US)
         required_features: List of features to filter by (e.g., ["red", "sunroof", "AWD"])
         user_query: Original user query string (used for relevance ranking)
+        limit: Number of results to return (default 10)
+        page: Page number for pagination (default 1)
         
     Returns:
         List of filtered and ranked car listings
@@ -111,7 +115,9 @@ async def search_car_listings(
         brand=brand,
         model=model,
         location=location,
-        features=required_features
+        features=required_features,
+        page=page,
+        limit=limit
     )
     
     # Build query params
@@ -135,6 +141,11 @@ async def search_car_listings(
     query_params["country"] = country
     query_params["radius_km"] = 150
     
+    # Request more from API to allow for local filtering
+    # If user asks for 10, we fetch 20 to have buffer
+    query_params["limit"] = max(limit * 2, 20)
+    query_params["page"] = page
+    
     # Search using Auto.dev API
     autodev = AutoDevAPI()
     cars = await autodev.search_listings(query_params)
@@ -157,7 +168,7 @@ async def search_car_listings(
             "images": car.get("images", []),
             "sourceUrl": car.get("sourceUrl")
         }
-        for car in cars[:20]  # Process top 20
+        for car in cars  # Process all returned cars
     ]
     
     # Apply internal filtering if features requested
@@ -170,7 +181,7 @@ async def search_car_listings(
         simplified_cars = _rank_cars_logic(simplified_cars, user_query)
         logger.info("ranked_results", top_score=simplified_cars[0].get("match_score") if simplified_cars else 0)
     
-    return simplified_cars[:10]  # Return top 10 relevant results
+    return simplified_cars[:limit]  # Return requested limit
 
 
 @tool
@@ -244,11 +255,14 @@ def save_search_results(
         
         # Save each car result
         saved_count = 0
-        for car_data in results[:10]:  # Limit to top 10
+        for car_data in results:
             try:
                 vin = car_data.get("vin")
                 if not vin:
-                    continue
+                    # Generate temporary VIN if missing to ensure display
+                    import uuid
+                    vin = f"TEMP-{uuid.uuid4().hex[:10]}"
+                    car_data["vin"] = vin
                 
                 # Check if car already exists (skip for now)
                 existing_car = None

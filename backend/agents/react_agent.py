@@ -2,10 +2,11 @@
 World-class ReAct agent using LangGraph's create_react_agent.
 Autonomous car search with intelligent tool usage.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from sqlalchemy.orm import Session
 
 from agents.tools import ALL_TOOLS
 from core.config import settings
@@ -45,28 +46,35 @@ class CarSearchAgent:
     
     def _build_system_prompt(self) -> str:
         """Build comprehensive system prompt for the agent."""
-        return """You are an expert automotive search assistant powered by SearchAuto.
+        return """You are SearchAuto's expert automotive concierge. Your goal is to help users find their dream car with precision, speed, and helpfulness.
 
-Your mission: Help users find their perfect car by intelligently using your tools.
+CAPABILITIES:
+- You can search real dealer inventory across the US and Canada.
+- You can filter by price, brand, model, year, features (e.g., "sunroof", "AWD", "leather"), and location.
+- You can rank results by relevance to the user's specific query.
+- You can handle pagination (showing more results) if the user asks.
 
 AVAILABLE TOOLS:
-1. search_car_listings - Find, filter, and rank cars from Auto.dev API
-2. save_search_results - Save your findings and post results to the user's conversation
-3. post_message_to_user - Send a message to the user (for clarifications, no results, etc.)
+1. search_car_listings - Find, filter, and rank cars. Supports pagination (limit, page).
+2. save_search_results - Save your findings and post results to the user's conversation.
+3. post_message_to_user - Send a message to the user (for clarifications, no results, etc.).
 
 WORKFLOW (MUST FOLLOW EVERY TIME):
-1. search_car_listings - Call with all inferred parameters (brand, price, features, etc.)
-2. **MANDATORY**: save_search_results - Save top 3-5 cars with your summary
+1. search_car_listings - Call with all inferred parameters.
+   - If user asks for "more", increment the `page` parameter.
+   - If specific features are mentioned (e.g. "red", "electric"), pass them in `required_features`.
+   - Always pass `user_query` for intelligent ranking.
+2. **MANDATORY**: save_search_results - Save the cars you found.
+   - Provide a helpful, engaging summary in the `summary` field. Mention key highlights of the top car.
 
 CRITICAL RULES:
-- You MUST call save_search_results as your FINAL step when you find cars
-- WITHOUT save_search_results, the user will NOT see any car cards on their screen
-- If no cars found, use post_message_to_user instead
-- Do not ask for clarification unless absolutely necessary. Infer parameters from the query.
-- Pass 'required_features' to search_car_listings for any features mentioned (e.g., "red", "sunroof", "AWD")
-- Pass 'user_query' to search_car_listings to enable intelligent ranking
+- You MUST call save_search_results as your FINAL step when you find cars.
+- WITHOUT save_search_results, the user will NOT see any car cards.
+- If no cars found, use post_message_to_user to inform the user and suggest alternatives.
+- Be proactive: if a user searches for "cheap cars", infer a reasonable price cap (e.g., $15k-$20k) if not specified.
+- If the user asks for "more", use `page=2` in `search_car_listings`.
 
-EXAMPLE WORKFLOW:
+EXAMPLE WORKFLOW (New Search):
 User: "Electric SUV under $60k"
 1. search_car_listings(
      price_max=60000, 
@@ -80,12 +88,23 @@ User: "Electric SUV under $60k"
      summary="I found 3 great electric SUVs under $60k..."
    )
 
-Remember: save_search_results is NOT optional - it's REQUIRED to show cars to the user!"""
+EXAMPLE WORKFLOW (Pagination):
+User: "Show me more"
+1. search_car_listings(
+     price_max=60000, 
+     required_features=["electric", "SUV"], 
+     user_query="Electric SUV under $60k",
+     page=2
+   )
+2. save_search_results(...)
+
+Remember: You are a helpful assistant. Be concise but informative."""
     
     async def search(
         self,
         query: str,
-        user_context: Optional[Dict[str, Any]] = None
+        user_context: Optional[Dict[str, Any]] = None,
+        db: Optional[Session] = None
     ) -> Dict[str, Any]:
         """
         Execute autonomous car search.
@@ -93,6 +112,7 @@ Remember: save_search_results is NOT optional - it's REQUIRED to show cars to th
         Args:
             query: User's natural language query
             user_context: Optional context (location, preferences, etc.)
+            db: Optional database session for history retrieval
             
         Returns:
             Search results with agent's analysis
@@ -100,23 +120,34 @@ Remember: save_search_results is NOT optional - it's REQUIRED to show cars to th
         logger.info("agent_search_start", query=query)
         
         try:
-            # Build context-aware message
-            user_message = self._build_user_message(query, user_context)
+            messages = []
             
-            # Run the agent
+            # 1. Fetch history if available
+            if db and user_context and user_context.get("user_id"):
+                user_id = user_context["user_id"]
+                history = self._fetch_conversation_history(db, user_id)
+                if history:
+                    messages.extend(history)
+                    logger.info("history_loaded", messages_count=len(history))
+            
+            # 2. Build current user message
+            user_message = self._build_user_message(query, user_context)
+            messages.append(user_message)
+            
+            # 3. Run the agent
             result = await self.agent.ainvoke({
-                "messages": [user_message]
+                "messages": messages
             })
             
             # Extract final response
-            messages = result.get("messages", [])
-            final_message = messages[-1] if messages else None
+            response_messages = result.get("messages", [])
+            final_message = response_messages[-1] if response_messages else None
             
             response_text = final_message.content if final_message else "No results found"
             
             # Count tool calls
             tool_calls = sum(
-                1 for msg in messages 
+                1 for msg in response_messages 
                 if hasattr(msg, "tool_calls") and msg.tool_calls
             )
             
@@ -130,7 +161,7 @@ Remember: save_search_results is NOT optional - it's REQUIRED to show cars to th
                 "response": response_text,
                 "query": query,
                 "tool_calls_made": tool_calls,
-                "messages": messages
+                "messages": response_messages
             }
             
         except Exception as e:
@@ -162,6 +193,30 @@ Remember: save_search_results is NOT optional - it's REQUIRED to show cars to th
                 "error": str(e)
             }
     
+    def _fetch_conversation_history(self, db: Session, user_id: int) -> List[Any]:
+        """Fetch recent conversation history for context."""
+        try:
+            from db.repositories import ConversationRepository
+            repo = ConversationRepository(db)
+            
+            # Get/Create conversation to ensure we have the ID
+            conversation = repo.get_or_create(user_id)
+            
+            # Fetch last 10 messages
+            messages = repo.list_messages(conversation.id, limit=10)
+            
+            history = []
+            for msg in messages:
+                if msg.role == "user":
+                    history.append(HumanMessage(content=msg.content))
+                elif msg.role == "assistant":
+                    history.append(AIMessage(content=msg.content))
+            
+            return history
+        except Exception as e:
+            logger.warning("failed_to_load_history", error=str(e), user_id=user_id)
+            return []
+
     def _build_user_message(
         self,
         query: str,
@@ -200,4 +255,3 @@ Remember: save_search_results is NOT optional - it's REQUIRED to show cars to th
 
 # Global agent instance
 car_search_agent = CarSearchAgent()
-

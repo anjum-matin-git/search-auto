@@ -83,6 +83,19 @@ class AuthService:
         
         logger.info("user_created", user_id=user.id, username=username)
         
+        # Create UserPreference record if initial_preferences provided
+        if initial_preferences:
+            from db.repositories import UserPreferenceRepository
+            pref_repo = UserPreferenceRepository(self.db)
+            pref_repo.create_or_update(
+                user_id=user.id,
+                preferences=initial_preferences,
+                preferred_brands=initial_preferences.get("brands", []),
+                preferred_types=initial_preferences.get("types", []),
+                price_range_min=initial_preferences.get("price_min"),
+                price_range_max=initial_preferences.get("price_max")
+            )
+        
         return self._serialize_user(user)
     
     def login(self, username: str, password: str) -> dict:

@@ -15,7 +15,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const loginMutation = useMutation({
-    mutationFn: () => login({ email, password }),
+    mutationFn: () => login(email, password),
     onSuccess: (data) => {
       storeUser(data.user);
       toast.success("Welcome back");

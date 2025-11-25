@@ -88,8 +88,22 @@ export async function login(email: string, password: string): Promise<{ success:
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Login failed");
+    let error;
+    try {
+      error = await response.json();
+    } catch {
+      error = { detail: "Login failed" };
+    }
+    
+    // Handle validation errors (422)
+    if (response.status === 422 && error.detail) {
+      const details = Array.isArray(error.detail) ? error.detail : [error.detail];
+      const firstError = details[0];
+      const message = firstError?.msg || firstError?.detail || "Validation failed";
+      throw new Error(message);
+    }
+    
+    throw new Error(error.error || error.detail || "Login failed");
   }
 
   const result = await response.json();

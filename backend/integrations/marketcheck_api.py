@@ -120,24 +120,14 @@ class MarketCheckAPI:
         # MarketCheck supports car_type parameter
         params["car_type"] = "used"  # Default to used cars
         
-        # Location handling
-        country, latitude, longitude, resolved_zip = self._resolve_geo_targets(query_params)
+        # NOTE: MarketCheck location filtering (zip, lat/long, radius) seems to 
+        # break search results - returns 0 results even with valid params.
+        # MarketCheck has nationwide US inventory, so we skip location filtering
+        # and let the frontend/user see results from across the country.
+        # This can be revisited if MarketCheck fixes their location API.
         
-        # MarketCheck only accepts US ZIP codes (5 digits)
-        # For Canadian searches, use lat/long only
-        if resolved_zip and country == "US" and resolved_zip.isdigit() and len(resolved_zip) == 5:
-            params["zip"] = resolved_zip
-        
-        if latitude is not None and longitude is not None:
-            params["latitude"] = latitude
-            params["longitude"] = longitude
-            params["radius"] = query_params.get("radius_km", 150)
-        elif not params.get("zip"):
-            # Default to a US location if no geo data (avoid 422 errors)
-            # Los Angeles as fallback
-            params["latitude"] = 34.0522
-            params["longitude"] = -118.2437
-            params["radius"] = 200
+        # Optional: Add seller_type for dealer inventory only
+        params["seller_type"] = "dealer"
         
         # Pagination
         params["rows"] = query_params.get("limit", 20)

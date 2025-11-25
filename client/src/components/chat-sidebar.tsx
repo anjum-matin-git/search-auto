@@ -150,25 +150,26 @@ export function ChatSidebar({
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`
-              fixed top-0 right-0 z-50 h-full
-              ${isExpanded ? "w-full lg:w-[600px]" : "w-full sm:w-[400px] md:w-[450px]"}
-              bg-background/95 backdrop-blur-xl border-l border-border
+              fixed inset-0 sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 z-50
+              ${isExpanded ? "sm:w-[600px]" : "sm:w-[400px] md:w-[450px]"}
+              bg-background/98 backdrop-blur-xl sm:border-l border-border
               flex flex-col shadow-2xl
+              safe-area-inset
             `}
             data-testid="chat-sidebar"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-background/50">
+            {/* Header - with safe area padding for notched phones */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-border bg-background/80 backdrop-blur-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
-                  <Bot className="w-5 h-5 text-primary" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-secondary flex items-center justify-center border border-border flex-shrink-0">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground font-display">AI Assistant</h2>
-                  <p className="text-xs text-muted-foreground">Powered by SearchAuto Intelligence</p>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-semibold text-foreground font-display truncate">AI Assistant</h2>
+                  <p className="text-xs text-muted-foreground truncate hidden sm:block">Powered by SearchAuto</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="hidden lg:flex p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
@@ -177,7 +178,7 @@ export function ChatSidebar({
                 </button>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="p-2 hover:bg-secondary rounded-lg transition-colors text-foreground hover:text-destructive hover:bg-destructive/10"
+                  className="p-2.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors text-foreground hover:text-destructive hover:bg-destructive/10"
                   title="Close chat (ESC)"
                   data-testid="button-close-chat"
                 >
@@ -247,13 +248,13 @@ export function ChatSidebar({
                         }
                       </div>
                       <div className={`
-                        max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+                        max-w-[85%] sm:max-w-[80%] px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl text-sm leading-relaxed
                         ${message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary/50 border border-border text-foreground"
                         }
                       `}>
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap break-words">{message.content}</p>
                       </div>
                     </motion.div>
                   ))}
@@ -281,8 +282,8 @@ export function ChatSidebar({
               )}
             </div>
 
-            {/* Input */}
-            <div className="p-4 sm:p-6 border-t border-border bg-background/50 backdrop-blur-sm">
+            {/* Input - with safe area padding for home indicator */}
+            <div className="p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-border bg-background/80 backdrop-blur-sm">
               <div className="flex gap-2 sm:gap-3">
                 <input
                   ref={inputRef}
@@ -292,14 +293,14 @@ export function ChatSidebar({
                   onKeyPress={handleKeyPress}
                   placeholder="Ask anything..."
                   disabled={sendMutation.isPending}
-                  className="flex-1 px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground text-base sm:text-sm outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || sendMutation.isPending}
                   size="icon"
-                  className="rounded-xl w-12 h-12"
+                  className="rounded-xl w-12 h-12 flex-shrink-0"
                   data-testid="button-send"
                 >
                   {sendMutation.isPending ? (

@@ -129,6 +129,21 @@
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
   }
   
+  /* Safe area inset for notched phones */
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Custom scrollbar to match dark theme */
   ::-webkit-scrollbar {
     width: 6px;
@@ -146,5 +161,18 @@
   
   ::-webkit-scrollbar-thumb:hover {
     background: var(--color-muted-foreground);
+  }
+  
+  /* Prevent iOS zoom on input focus */
+  @media screen and (max-width: 640px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+  
+  /* Fix for mobile viewport height (100vh issue) */
+  .min-h-screen-mobile {
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }

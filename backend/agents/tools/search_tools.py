@@ -4,10 +4,12 @@ Provides search, filtering, and persistence capabilities.
 """
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+import asyncio
 
 from langchain_core.tools import tool
 
 from integrations.autodev_api import AutoDevAPI
+from integrations.marketcheck_api import MarketCheckAPI
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -182,11 +184,66 @@ async def search_car_listings(
     if postal_code:
         params["postal_code"] = postal_code
     
-    # Execute search
-    api = AutoDevAPI()
-    raw_cars = await api.search_listings(params)
+    # Execute search - Using MarketCheck as primary source (better results)
+    # Auto.dev temporarily disabled in favor of MarketCheck
+    raw_cars = []
+    existing_vins = set()  # Track by VIN for deduplication
+    existing_keys = set()  # Track by brand+model+year+price for cars without VIN
     
-    logger.info("api_results", count=len(raw_cars))
+    # Primary: MarketCheck API (better and richer results)
+    marketcheck_api = MarketCheckAPI()
+    if marketcheck_api.enabled:
+        try:
+            marketcheck_results = await marketcheck_api.search_listings(params)
+            for car in marketcheck_results:
+                vin = car.get("vin", "")
+                key = f"{car.get('brand')}_{car.get('model')}_{car.get('year')}_{car.get('price')}"
+                
+                # Deduplicate by VIN or key
+                if vin:
+                    if vin not in existing_vins:
+                        existing_vins.add(vin)
+                        raw_cars.append(car)
+                elif key not in existing_keys:
+                    existing_keys.add(key)
+                    raw_cars.append(car)
+            
+            logger.info("marketcheck_results", count=len(marketcheck_results), added=len(raw_cars))
+        except Exception as e:
+            logger.warning("marketcheck_error", error=str(e))
+    
+    # Fallback: Auto.dev (commented out - using MarketCheck as primary)
+    # Uncomment below if you want to use Auto.dev as fallback or additional source
+    """
+    if len(raw_cars) < limit:
+        autodev_api = AutoDevAPI()
+        if autodev_api.enabled:
+            try:
+                autodev_results = await autodev_api.search_listings(params)
+                autodev_added = 0
+                for car in autodev_results:
+                    vin = car.get("vin", "")
+                    key = f"{car.get('brand')}_{car.get('model')}_{car.get('year')}_{car.get('price')}"
+                    
+                    # Skip if already exists
+                    if vin and vin in existing_vins:
+                        continue
+                    if not vin and key in existing_keys:
+                        continue
+                    
+                    if vin:
+                        existing_vins.add(vin)
+                    else:
+                        existing_keys.add(key)
+                    raw_cars.append(car)
+                    autodev_added += 1
+                
+                logger.info("autodev_results", count=len(autodev_results), added=autodev_added)
+            except Exception as e:
+                logger.warning("autodev_error", error=str(e))
+    """
+    
+    logger.info("total_api_results", count=len(raw_cars))
     
     # Normalize data
     cars = [normalize_car_data(car) for car in raw_cars]

@@ -54,7 +54,7 @@ export default function Login() {
         </a>
 
         {/* Card */}
-        <div className="bg-card/50 backdrop-blur-xl rounded-2xl p-8 border border-border shadow-2xl">
+        <div className="bg-card/50 backdrop-blur-xl rounded-2xl p-4 sm:p-6 md:p-8 border border-border shadow-2xl w-full max-w-sm">
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-display font-bold text-foreground mb-2">Welcome back</h1>
             <p className="text-sm text-muted-foreground">Sign in to continue to your account</p>

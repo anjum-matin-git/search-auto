@@ -4,7 +4,6 @@ Provides access to dealer inventory with actual vehicle data and images.
 """
 from typing import List, Dict, Any, Optional
 from urllib.parse import quote_plus
-import os
 import math
 
 import httpx
@@ -35,7 +34,7 @@ class AutoDevAPI:
     """Client for Auto.dev Listings API - real dealer inventory."""
     
     def __init__(self):
-        self.api_key = os.getenv("AUTO_DEV_API_KEY")
+        self.api_key = settings.auto_dev_api_key
         if not self.api_key:
             logger.warning("autodev_no_key", message="AUTO_DEV_API_KEY not set")
             self.enabled = False

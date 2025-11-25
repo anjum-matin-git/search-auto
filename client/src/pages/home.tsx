@@ -296,7 +296,7 @@ export default function Home() {
                         </>
                       )}
                     </motion.div>
-                    <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
                       {currentQueryLabel ? (
                         <>"{currentQueryLabel}"</>
                       ) : (
@@ -323,7 +323,7 @@ export default function Home() {
               </motion.div>
               
               {/* Results Grid with stagger animation */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 stagger-children">
                 {displayResults.map((car: CarResult, index: number) => (
                   <CarCard key={car.id || `car-${index}`} car={car} index={index} />
                 ))}
@@ -335,7 +335,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
-                className="mt-20 p-10 bg-card/50 backdrop-blur-sm rounded-3xl border border-border text-center relative overflow-hidden"
+                className="mt-12 sm:mt-20 p-6 sm:p-8 md:p-10 bg-card/50 backdrop-blur-sm rounded-2xl sm:rounded-3xl border border-border text-center relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
                 <div className="relative z-10">

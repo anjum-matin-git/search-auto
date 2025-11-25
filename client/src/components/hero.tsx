@@ -102,45 +102,45 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-24 sm:pt-20 pb-12 sm:pb-0">
         <div className="text-center space-y-10 animate-fade-in max-w-5xl mx-auto">
           {/* Badge - High Contrast & Animated Icon */}
-          <div className="inline-flex items-center space-x-3 bg-secondary/80 backdrop-blur-md border border-white/20 rounded-full px-6 py-2.5 shadow-lg hover:bg-secondary/90 transition-colors cursor-default group">
+          <div className="inline-flex items-center space-x-2 sm:space-x-3 bg-secondary/80 backdrop-blur-md border border-white/20 rounded-full px-4 sm:px-6 py-2 sm:py-2.5 shadow-lg hover:bg-secondary/90 transition-colors cursor-default group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-md rounded-full group-hover:bg-primary/40 transition-all" />
               <AnimatedCarIcon />
             </div>
-            <span className="text-sm font-medium text-foreground tracking-wide group-hover:text-white transition-colors">
+            <span className="text-xs sm:text-sm font-medium text-foreground tracking-wide group-hover:text-white transition-colors">
               The First AI-Native Car Search
             </span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-tight font-display text-foreground leading-[0.9]">
+          <h1 className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-tight font-display text-foreground leading-[0.9] px-2">
             The future of
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">car buying</span>
           </h1>
 
           {/* Subheadline / Description */}
-          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed px-4">
             Experience the power of <span className="text-foreground font-medium">AI-driven</span> automotive search. 
             Find your perfect match in seconds.
           </p>
 
           {/* Search Bar - Centerpiece */}
-          <div className="max-w-3xl mx-auto relative group mt-12">
+          <div className="max-w-3xl mx-auto relative group mt-8 sm:mt-12 px-4">
              {/* Outer Glow */}
              <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-white/10 to-primary/30 rounded-full blur-lg opacity-50 group-hover:opacity-80 transition duration-1000"></div>
              
-             <div className="relative flex items-center bg-background/60 backdrop-blur-2xl border border-white/10 rounded-full p-2 shadow-2xl hover:border-primary/40 transition-all duration-300">
-                <div className="pl-6 pr-4 text-muted-foreground">
+             <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-background/60 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-full p-2 sm:p-2 shadow-2xl hover:border-primary/40 transition-all duration-300 gap-2 sm:gap-0">
+                <div className="hidden sm:flex pl-6 pr-4 text-muted-foreground">
                   <Search className="w-6 h-6" />
                 </div>
                 <input 
                   type="text"
                   placeholder={PLACEHOLDER_PHRASES[placeholderIndex]}
-                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/50 py-4 text-xl outline-none font-light tracking-wide"
+                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/50 py-3 sm:py-4 px-4 sm:px-0 text-base sm:text-xl outline-none font-light tracking-wide"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -151,17 +151,18 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
                   onClick={handleSearch}
                   disabled={isSearching || !searchTerm.trim()}
                   size="lg"
-                  className="rounded-full px-10 h-14 font-medium text-base transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] bg-white text-black hover:bg-white/90"
+                  className="rounded-xl sm:rounded-full px-6 sm:px-10 h-12 sm:h-14 font-medium text-sm sm:text-base transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] bg-white text-black hover:bg-white/90 w-full sm:w-auto"
                 >
                   {isSearching ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
                       Searching
                     </>
                   ) : (
                     <>
+                      <Search className="w-4 h-4 sm:hidden mr-2" />
                       Search
-                      <ArrowRight className="ml-2 w-5 h-5" />
+                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 hidden sm:inline" />
                     </>
                   )}
                 </Button>
@@ -169,12 +170,12 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
           </div>
           
           {/* Quick Suggestions */}
-          <div className="flex flex-wrap justify-center gap-4 mt-10">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-6 sm:mt-10 px-4">
              {["Electric SUV", "Luxury Sedan", "Hybrid", "Vintage", "Sports Car"].map((tag) => (
                <button
                  key={tag}
                  onClick={() => setSearchTerm(tag)}
-                 className="px-5 py-2 rounded-full bg-white/5 border border-white/5 text-sm text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
+                 className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
                >
                  {tag}
                </button>

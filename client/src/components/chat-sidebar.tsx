@@ -120,8 +120,8 @@ export function ChatSidebar({
             whileTap={{ scale: 0.95 }}
             onClick={() => onOpenChange(true)}
             className={`
-              fixed bottom-6 right-6 z-50 
-              w-14 h-14 rounded-full
+              fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 
+              w-12 h-12 sm:w-14 sm:h-14 rounded-full
               bg-primary text-primary-foreground
               flex items-center justify-center
               shadow-2xl shadow-primary/20
@@ -151,14 +151,14 @@ export function ChatSidebar({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`
               fixed top-0 right-0 z-50 h-full
-              ${isExpanded ? "w-full lg:w-[600px]" : "w-full sm:w-[450px]"}
+              ${isExpanded ? "w-full lg:w-[600px]" : "w-full sm:w-[400px] md:w-[450px]"}
               bg-background/95 backdrop-blur-xl border-l border-border
               flex flex-col shadow-2xl
             `}
             data-testid="chat-sidebar"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background/50">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-background/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-border">
                   <Bot className="w-5 h-5 text-primary" />
@@ -187,7 +187,7 @@ export function ChatSidebar({
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 hide-scrollbar">
               {messages.length === 0 ? (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
@@ -282,8 +282,8 @@ export function ChatSidebar({
             </div>
 
             {/* Input */}
-            <div className="p-6 border-t border-border bg-background/50 backdrop-blur-sm">
-              <div className="flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-border bg-background/50 backdrop-blur-sm">
+              <div className="flex gap-2 sm:gap-3">
                 <input
                   ref={inputRef}
                   type="text"

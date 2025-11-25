@@ -124,26 +124,26 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         {/* Title & Price */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-foreground font-display text-lg leading-tight truncate">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-foreground font-display text-base sm:text-lg leading-tight">
               {car.year} {car.brand} {car.model}
             </h3>
             {(car.dealerName || car.dealership) && (
-              <p className="text-sm text-muted-foreground truncate mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate mt-1">
                 {car.dealerName || car.dealership}
               </p>
             )}
           </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-xl font-bold text-gradient font-display">{car.price}</p>
+          <div className="text-left sm:text-right flex-shrink-0">
+            <p className="text-lg sm:text-xl font-bold text-gradient font-display">{car.price}</p>
           </div>
         </div>
 
         {/* Specs grid */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-5">
           {car.mileage && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Gauge className="w-4 h-4 text-primary" />
@@ -172,7 +172,7 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
 
         {/* Features */}
         {car.features && car.features.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-5">
+          <div className="flex flex-wrap gap-1.5 mb-4 sm:mb-5">
             {car.features.slice(0, 3).map((feature, i) => (
               <span 
                 key={i} 

@@ -74,6 +74,20 @@ export function ChatSidebar({
     }
   }, [open, messages.length]);
 
+  // Handle ESC key to close chat
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) {
+        onOpenChange(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener("keydown", handleEscKey);
+      return () => document.removeEventListener("keydown", handleEscKey);
+    }
+  }, [open, onOpenChange]);
+
   const handleSend = () => {
     if (!input.trim()) return;
     if (!user) {
@@ -163,10 +177,11 @@ export function ChatSidebar({
                 </button>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                  className="p-2 hover:bg-secondary rounded-lg transition-colors text-foreground hover:text-destructive hover:bg-destructive/10"
+                  title="Close chat (ESC)"
                   data-testid="button-close-chat"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -307,7 +322,7 @@ export function ChatSidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => onOpenChange(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
           />
         )}
       </AnimatePresence>

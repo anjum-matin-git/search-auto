@@ -91,7 +91,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
       {/* CAR BACKGROUND IMAGE */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-no-repeat opacity-100 bg-contain sm:bg-cover bg-[center_40%] sm:bg-[center_bottom]"
+          className="absolute inset-0 bg-no-repeat opacity-100 bg-contain sm:bg-cover bg-[center_30%] sm:bg-[center_bottom]"
           style={{ 
             backgroundImage: "url('https://framerusercontent.com/images/DZxyZUiRh1CLJBFJKeCL2tghykw.jpg')",
             filter: "brightness(1.2) contrast(1.1)"

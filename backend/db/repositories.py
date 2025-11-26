@@ -290,13 +290,15 @@ class ConversationRepository:
     
     def list_messages(self, conversation_id: int, limit: int = 50) -> List[ConversationMessage]:
         """Return the latest conversation messages."""
-        return (
+        messages = (
             self.db.query(ConversationMessage)
             .filter(ConversationMessage.conversation_id == conversation_id)
-            .order_by(ConversationMessage.created_at.asc())
+            .order_by(ConversationMessage.created_at.desc())
             .limit(limit)
             .all()
         )
+        # Return in chronological order
+        return sorted(messages, key=lambda m: m.created_at)
     
     def add_message(self, conversation_id: int, role: str, content: str) -> ConversationMessage:
         """Persist a conversation message."""

@@ -91,10 +91,11 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
       {/* CAR BACKGROUND IMAGE */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-no-repeat opacity-100 bg-[center_bottom] bg-contain sm:bg-cover"
+          className="absolute inset-0 bg-no-repeat opacity-100 bg-[center_bottom] sm:bg-[center_bottom] bg-contain sm:bg-cover"
           style={{ 
             backgroundImage: "url('https://framerusercontent.com/images/DZxyZUiRh1CLJBFJKeCL2tghykw.jpg')",
-            filter: "brightness(1.2) contrast(1.1)"
+            filter: "brightness(1.2) contrast(1.1)",
+            backgroundPosition: "center bottom"
           }} 
         />
         
@@ -128,7 +129,7 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
       </div>
 
       <motion.div 
-        className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-20 flex flex-col items-center pt-32 sm:pt-40"
+        className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-20 flex flex-col items-center pt-24 sm:pt-40 pb-32 sm:pb-0"
         style={{ y: y1, opacity }}
       >
         {/* Setrex Style Pill Badge */}

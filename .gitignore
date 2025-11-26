@@ -21,3 +21,7 @@ coverage
 
 # macOS metadata
 __MACOSX
+# Framer template folders
+framer-*
+*-framer*
+

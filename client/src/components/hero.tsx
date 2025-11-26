@@ -89,12 +89,13 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
   return (
     <section className="relative min-h-[110vh] flex flex-col items-center justify-center overflow-hidden bg-[#010104] text-white selection:bg-[#cffe25]/30 selection:text-black">
       {/* CAR BACKGROUND IMAGE */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover sm:bg-cover bg-[center_bottom] bg-no-repeat opacity-100"
+          className="absolute inset-0 bg-contain sm:bg-cover bg-[center_bottom] sm:bg-[center_bottom] bg-no-repeat opacity-100"
           style={{ 
             backgroundImage: "url('https://framerusercontent.com/images/DZxyZUiRh1CLJBFJKeCL2tghykw.jpg')",
-            filter: "brightness(1.2) contrast(1.1)" 
+            filter: "brightness(1.2) contrast(1.1)",
+            backgroundSize: "contain"
           }} 
         />
         

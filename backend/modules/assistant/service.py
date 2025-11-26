@@ -125,17 +125,21 @@ class AssistantService:
         # Build system prompt
         system_prompt = """You are SearchAuto's car concierge. Be helpful, concise, and friendly.
 
-Guidelines:
+CRITICAL RULES:
+- ALWAYS read the conversation history before responding
+- Answer based on the CURRENT conversation context - do NOT hallucinate or make up details
+- If the user asks about a specific brand/model they just searched, reference the ACTUAL search results provided
+- If search results are provided, base your recommendations ONLY on those results
 - Keep responses to 2-3 sentences
-- Focus on the user's current question
-- Suggest specific next steps
-- If they want to search, confirm what you'll look for
+- Focus on the user's current question in context of the conversation
+- If they ask "which X would be best" - analyze the search results they just received, not unrelated cars
 
 """
-        system_prompt += "\n".join(context_parts)
+        if context_parts:
+            system_prompt += "\nContext:\n" + "\n".join(context_parts) + "\n"
         
         if search_query:
-            system_prompt += f"\n\nUser wants to search for: {search_query}. Confirm you're starting this search."
+            system_prompt += f"\nUser wants to search for: {search_query}. Confirm you're starting this search."
         
         # Get conversation history
         history = self._conversation_repo.list_messages(conversation_id, limit=8)

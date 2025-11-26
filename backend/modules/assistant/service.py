@@ -99,16 +99,24 @@ class AssistantService:
         if latest_search:
             search_obj, car_results = latest_search
             if car_results:
-                context_parts.append(f"User's last search query: '{search_obj.query}'")
+                context_parts.append(f"=== LAST SEARCH ===")
+                context_parts.append(f"Query: '{search_obj.query}'")
+                context_parts.append(f"\n=== AVAILABLE CARS (ONLY RECOMMEND FROM THIS LIST) ===")
                 summaries = []
-                for car, score in car_results[:5]:  # Include top 5 for better context
+                for i, (car, score) in enumerate(car_results[:5], 1):  # Include top 5 for better context
                     data = car.car_data
                     price = data.get('price', 'N/A')
                     price_str = f"${price:,}" if isinstance(price, (int, float)) else price
+                    features = data.get('features', [])[:3]
+                    features_str = f" | Features: {', '.join(features)}" if features else ""
                     summaries.append(
-                        f"{data.get('year')} {data.get('brand')} {data.get('model')} - {price_str} - {data.get('location', 'Location N/A')}"
+                        f"{i}. {data.get('year')} {data.get('brand')} {data.get('model')} - {price_str} - {data.get('location', 'Location N/A')}{features_str}"
                     )
-                context_parts.append("Current search results:\n" + "\n".join([f"  {i+1}. {s}" for i, s in enumerate(summaries)]))
+                context_parts.append("\n".join(summaries))
+                context_parts.append("\n=== END OF AVAILABLE CARS ===")
+        else:
+            context_parts.append("=== NO SEARCH RESULTS AVAILABLE ===")
+            context_parts.append("Tell the user to search for cars first before asking questions.")
         
         # Add preferences
         prefs = user.initial_preferences or {}
@@ -129,13 +137,18 @@ class AssistantService:
         system_prompt = """You are SearchAuto's car concierge. Be helpful, concise, and friendly.
 
 CRITICAL RULES:
-- ALWAYS read the conversation history before responding
-- Answer based on the CURRENT conversation context - do NOT hallucinate or make up details
-- If the user asks about a specific brand/model they just searched, reference the ACTUAL search results provided
-- If search results are provided, base your recommendations ONLY on those results
-- Keep responses to 2-3 sentences
-- Focus on the user's current question in context of the conversation
-- If they ask "which X would be best" - analyze the search results they just received, not unrelated cars
+- ONLY answer based on the conversation history and search results provided below
+- NEVER make up car recommendations that aren't in the search results
+- If the user asks "which X would be the best?" - ONLY compare cars from the search results provided
+- If NO search results are provided, tell the user to perform a search first
+- If search results don't match what they're asking about, tell them to search for that specific car
+- Keep responses to 2-3 sentences maximum
+- Be honest if you don't have enough information
+
+EXAMPLE:
+User: "Which tesla would be the best?"
+If search results show BMW cars → "I see you searched for BMW, not Tesla. Would you like me to search for Tesla models instead?"
+If search results show Tesla cars → "Based on your search, I'd recommend the [specific Tesla from results] because [reason based on their data]."
 
 """
         if context_parts:

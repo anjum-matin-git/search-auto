@@ -53,8 +53,7 @@ class AssistantService:
             response = await self._claude.complete(
                 messages=formatted_history,
                 system_prompt=system_prompt,
-                max_tokens=350,  # Enough for detailed but concise answers
-                temperature=0.7  # Balanced creativity/accuracy
+                max_tokens=350
             )
         except Exception as e:
             logger.error(f"Claude API error for user {user.id}: {str(e)}")

@@ -120,7 +120,7 @@ export function ChatSidebar({
             whileTap={{ scale: 0.95 }}
             onClick={() => onOpenChange(true)}
             className={`
-              fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 
+              fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 
               w-12 h-12 sm:w-14 sm:h-14 rounded-full
               bg-[#cffe25] text-black
               flex items-center justify-center
@@ -150,8 +150,8 @@ export function ChatSidebar({
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`
-              fixed z-50
-              inset-x-0 bottom-0 top-[15vh] sm:top-0 sm:left-auto sm:right-0 sm:bottom-0 sm:h-auto
+              fixed z-[100]
+              inset-x-0 bottom-0 top-20 sm:top-0 sm:left-auto sm:right-0 sm:bottom-0 sm:h-auto
               ${isExpanded ? "sm:w-[600px]" : "sm:w-[400px] md:w-[450px]"}
               bg-[#010104]/95 backdrop-blur-2xl 
               border-t sm:border-t-0 sm:border-l border-white/10
@@ -179,14 +179,19 @@ export function ChatSidebar({
                   {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button
-                  onClick={() => onOpenChange(false)}
-                  className="p-2.5 sm:p-2 hover:bg-[#1a1a1d] rounded-lg transition-colors text-white hover:text-red-400 hover:bg-red-500/10 flex items-center gap-2"
-                  title="Close chat"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenChange(false);
+                  }}
+                  className="p-2.5 sm:p-2 hover:bg-[#1a1a1d] rounded-lg transition-colors text-white hover:text-red-400 hover:bg-red-500/10 flex items-center gap-2 z-[101] relative"
+                  title="Close chat (ESC)"
                   data-testid="button-close-chat"
+                  aria-label="Close chat"
                 >
                   <span className="text-xs font-medium sm:hidden">Close</span>
                   <X className="w-5 h-5 sm:hidden" />
-                  <ChevronDown className="w-5 h-5 hidden sm:block rotate-90" />
+                  <X className="w-5 h-5 hidden sm:block" />
                 </button>
               </div>
             </div>
@@ -316,6 +321,19 @@ export function ChatSidebar({
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Transparent Backdrop - Click to Close */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => onOpenChange(false)}
+            className="fixed inset-0 bg-black/20 z-[99] sm:hidden"
+          />
         )}
       </AnimatePresence>
     </>

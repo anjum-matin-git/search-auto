@@ -9,7 +9,6 @@ import Signup from "@/pages/signup";
 import Pricing from "@/pages/pricing";
 import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
-import { BackgroundCanvas } from "@/components/background";
 
 function Router() {
   return (
@@ -28,7 +27,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <BackgroundCanvas />
         <div className="relative z-10">
           <Toaster />
           <Router />

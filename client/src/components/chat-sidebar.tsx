@@ -164,7 +164,17 @@ export function ChatSidebar({
             <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 pt-4 sm:pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-white/10 bg-[#010104]/80 backdrop-blur-sm rounded-t-[2rem] sm:rounded-none">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#1a1a1d] flex items-center justify-center border border-white/10 flex-shrink-0">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#cffe25]" />
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-[#cffe25]"
+                  >
+                    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                    <circle cx="7" cy="17" r="2" />
+                    <circle cx="17" cy="17" r="2" />
+                  </svg>
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-sm font-semibold text-white font-display truncate">SearchAuto AI</h2>
@@ -205,7 +215,17 @@ export function ChatSidebar({
                   className="flex flex-col items-center justify-center h-full text-center"
                 >
                   <div className="w-16 h-16 rounded-2xl bg-[#1a1a1d] border border-white/5 flex items-center justify-center mb-6">
-                    <Bot className="w-8 h-8 text-[#757b83]" />
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      className="w-8 h-8 text-[#757b83]"
+                    >
+                      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                      <circle cx="7" cy="17" r="2" />
+                      <circle cx="17" cy="17" r="2" />
+                    </svg>
                   </div>
                   <h3 className="text-lg font-medium text-white mb-2 font-display">How can I help?</h3>
                   <p className="text-sm text-[#757b83] max-w-[280px] mb-8">
@@ -251,10 +271,21 @@ export function ChatSidebar({
                           : "bg-[#1a1a1d] text-white border-white/10"
                         }
                       `}>
-                        {message.role === "user" 
-                          ? <User className="w-4 h-4" />
-                          : <Sparkles className="w-4 h-4" />
-                        }
+                        {message.role === "user" ? (
+                          <User className="w-4 h-4" />
+                        ) : (
+                          <svg 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            className="w-4 h-4"
+                          >
+                            <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                            <circle cx="7" cy="17" r="2" />
+                            <circle cx="17" cy="17" r="2" />
+                          </svg>
+                        )}
                       </div>
                       <div className={`
                         max-w-[85%] sm:max-w-[80%] px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl text-sm leading-relaxed
@@ -275,7 +306,17 @@ export function ChatSidebar({
                       className="flex gap-4"
                     >
                       <div className="w-8 h-8 rounded-lg bg-[#1a1a1d] flex items-center justify-center border border-white/10">
-                        <Sparkles className="w-4 h-4 text-white" />
+                        <svg 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          className="w-4 h-4 text-white"
+                        >
+                          <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                          <circle cx="7" cy="17" r="2" />
+                          <circle cx="17" cy="17" r="2" />
+                        </svg>
                       </div>
                       <div className="bg-[#1a1a1d] border border-white/10 rounded-2xl px-4 py-3">
                         <div className="flex gap-1.5">

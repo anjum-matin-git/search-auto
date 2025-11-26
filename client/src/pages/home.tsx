@@ -71,10 +71,7 @@ export default function Home() {
         toast.info("No exact matches found");
       }
       
-      if (!autoOpenedAssistant || data.message) {
-        setAutoOpenedAssistant(true);
-        setAssistantOpen(true);
-      }
+      // Don't auto-open chat - let user open it manually
       
       if (user && searchCount >= 2) {
         setTimeout(() => setShowPaywall(true), 2000);

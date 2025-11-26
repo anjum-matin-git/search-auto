@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, ArrowRight } from "lucide-react";
+import { Search, Loader2, ArrowRight, Activity, Database, ShieldCheck, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 interface HeroProps {
   onSearch: (query: string) => void;
@@ -15,57 +15,56 @@ const PLACEHOLDER_PHRASES = [
   "Hybrid with great fuel economy",
 ];
 
-// Animated Car Icon Component
-const AnimatedCarIcon = () => (
-  <motion.svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4 text-primary"
-    initial="idle"
-    animate="drive"
+// Infinite Marquee Component
+const Marquee = ({ children, direction = 1, speed = 30 }: { children: React.ReactNode, direction?: number, speed?: number }) => {
+  return (
+    <div className="flex overflow-hidden whitespace-nowrap [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+      <motion.div
+        className="flex gap-16 py-4"
+        animate={{ x: direction > 0 ? [0, -1000] : [-1000, 0] }}
+        transition={{
+          x: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration: speed,
+            ease: "linear",
+          },
+        }}
+      >
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex gap-16 items-center text-white/30 font-medium text-xs uppercase tracking-[0.2em]">
+            {children}
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+// Floating Car Stat Card
+const StatCard = ({ icon: Icon, label, value, delay }: { icon: any, label: string, value: string, delay: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.5 }}
+    className="flex items-center gap-4 bg-[#0c0c0f]/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[160px] hover:border-[#cffe25]/50 transition-colors group shadow-lg"
   >
-    <motion.path
-      d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"
-      variants={{
-        idle: { y: 0 },
-        drive: { y: [0, -1, 0], transition: { duration: 0.5, repeat: Infinity, ease: "easeInOut" } }
-      }}
-    />
-    <motion.circle
-      cx="7"
-      cy="17"
-      r="2"
-      variants={{
-        idle: { rotate: 0 },
-        drive: { rotate: 360, transition: { duration: 1, repeat: Infinity, ease: "linear" } }
-      }}
-    />
-    <motion.path
-      d="M9 17h6"
-      variants={{
-        idle: { x: 0 },
-        drive: { x: [0, 1, 0], transition: { duration: 0.2, repeat: Infinity } }
-      }}
-    />
-    <motion.circle
-      cx="17"
-      cy="17"
-      r="2"
-      variants={{
-        idle: { rotate: 0 },
-        drive: { rotate: 360, transition: { duration: 1, repeat: Infinity, ease: "linear" } }
-      }}
-    />
-  </motion.svg>
+    <div className="p-2.5 rounded-xl bg-[#1a1a1d] text-white group-hover:text-[#cffe25] transition-colors">
+      <Icon className="w-5 h-5" />
+    </div>
+    <div>
+      <div className="text-[10px] text-[#757b83] uppercase tracking-wider font-semibold mb-0.5">{label}</div>
+      <div className="text-lg font-bold text-white tracking-tight">{value}</div>
+    </div>
+  </motion.div>
 );
 
 export function Hero({ onSearch, isSearching }: HeroProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const { scrollY } = useScroll();
+  const y1 = useTransform(scrollY, [0, 300], [0, 100]);
+  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   useEffect(() => {
     if (searchTerm) return;
@@ -88,111 +87,188 @@ export function Hero({ onSearch, isSearching }: HeroProps) {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
-      {/* Abstract Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Animated Gradient Blob 1 */}
-        <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-primary/5 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+    <section className="relative min-h-[110vh] flex flex-col items-center justify-center overflow-hidden bg-[#010104] text-white selection:bg-[#cffe25]/30 selection:text-black">
+      {/* CAR BACKGROUND IMAGE */}
+      <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover sm:bg-cover bg-[center_bottom] bg-no-repeat opacity-100"
+          style={{ 
+            backgroundImage: "url('https://framerusercontent.com/images/DZxyZUiRh1CLJBFJKeCL2tghykw.jpg')",
+            filter: "brightness(1.2) contrast(1.1)" 
+          }} 
+        />
         
-        {/* Animated Gradient Blob 2 */}
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-secondary/20 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '1s' }} />
+        {/* Top Fade (Reduced opacity for more brightness) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#010104] via-[#010104]/40 to-transparent" />
         
-        {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        {/* Bottom Fade (seamless blend) */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#010104] to-transparent" />
+        
+        {/* Setrex "Electric Lime" Glows */}
+        <motion.div 
+          className="absolute top-[-10%] left-[50%] -translate-x-1/2 w-[60vw] h-[40vw] bg-[#cffe25]/5 rounded-full blur-[150px]"
+          animate={{ 
+            opacity: [0.1, 0.3, 0.1],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-24 sm:pt-20 pb-12 sm:pb-0">
-        <div className="text-center space-y-10 animate-fade-in max-w-5xl mx-auto">
-          {/* Badge - High Contrast & Animated Icon */}
-          <div className="inline-flex items-center space-x-2 sm:space-x-3 bg-secondary/80 backdrop-blur-md border border-white/20 rounded-full px-4 sm:px-6 py-2 sm:py-2.5 shadow-lg hover:bg-secondary/90 transition-colors cursor-default group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-md rounded-full group-hover:bg-primary/40 transition-all" />
-              <AnimatedCarIcon />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-foreground tracking-wide group-hover:text-white transition-colors">
-              The First AI-Native Car Search
-            </span>
+      {/* Top Marquee */}
+      <div className="absolute top-24 left-0 right-0 z-10 opacity-60 border-y border-white/5 bg-[#010104]/50 backdrop-blur-sm hidden sm:block">
+        <Marquee speed={40}>
+          <span className="flex items-center gap-3"> THE ELECTRIC CAR ERA IS UPON US</span>
+          <span className="flex items-center gap-3 text-[#cffe25]">●</span>
+          <span className="flex items-center gap-3"> AI-POWERED AUTOMOTIVE SEARCH</span>
+          <span className="flex items-center gap-3 text-[#cffe25]">●</span>
+          <span className="flex items-center gap-3"> REAL-TIME MARKET DATA</span>
+          <span className="flex items-center gap-3 text-[#cffe25]">●</span>
+        </Marquee>
+      </div>
+
+      <motion.div 
+        className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-20 flex flex-col items-center pt-32 sm:pt-40"
+        style={{ y: y1, opacity }}
+      >
+        {/* Setrex Style Pill Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1a1a1d]/80 backdrop-blur-md border border-white/10 cursor-default hover:border-[#cffe25]/30 transition-colors"
+        >
+          <div className="flex items-center justify-center bg-[#cffe25] rounded-full w-6 h-6 overflow-hidden relative">
+            <motion.svg 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              className="w-3.5 h-3.5 text-black absolute"
+              animate={{ 
+                x: [-12, 12],
+                opacity: [0, 1, 1, 0]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                repeatDelay: 0.5
+              }}
+            >
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+              <circle cx="7" cy="17" r="2" />
+              <circle cx="17" cy="17" r="2" />
+            </motion.svg>
           </div>
+          <span className="text-xs font-medium text-white/90 tracking-wide pr-1">The First AI-Native Car Search</span>
+        </motion.div>
 
-          {/* Main Headline */}
-          <h1 className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-bold tracking-tight font-display text-foreground leading-[0.9] px-2">
-            The future of
-            <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">car buying</span>
-          </h1>
+        {/* Main Headline */}
+        <motion.h1 
+          className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-center tracking-tighter font-display mb-8 leading-[0.95] drop-shadow-2xl"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: [0.2, 0.65, 0.3, 0.9] }}
+        >
+          <span className="block text-white">
+            Find your dream car
+          </span>
+          <span className="block text-[#757b83]">
+            with <span className="text-[#cffe25]">AI precision.</span>
+          </span>
+        </motion.h1>
 
-          {/* Subheadline / Description */}
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed px-4">
-            Experience the power of <span className="text-foreground font-medium">AI-driven</span> automotive search. 
-            Find your perfect match in seconds.
-          </p>
+        {/* Subtitle */}
+        <motion.p 
+          className="text-lg sm:text-xl md:text-2xl text-white/70 text-center max-w-2xl font-light leading-relaxed mb-12 drop-shadow-md"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+        >
+          The intelligent search engine for automotive enthusiasts.
+          Real-time listings, <span className="text-white font-medium">market analysis</span>, zero friction.
+        </motion.p>
 
-          {/* Search Bar - Centerpiece */}
-          <div className="max-w-3xl mx-auto relative group mt-8 sm:mt-12 px-4">
-             {/* Outer Glow */}
-             <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-white/10 to-primary/30 rounded-full blur-lg opacity-50 group-hover:opacity-80 transition duration-1000"></div>
-             
-             <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-background/60 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-full p-2 sm:p-2 shadow-2xl hover:border-primary/40 transition-all duration-300 gap-2 sm:gap-0">
-                <div className="hidden sm:flex pl-6 pr-4 text-muted-foreground">
-                  <Search className="w-6 h-6" />
-                </div>
-                <input 
-                  type="text"
-                  placeholder={PLACEHOLDER_PHRASES[placeholderIndex]}
-                  className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/50 py-3 sm:py-4 px-4 sm:px-0 text-base sm:text-xl outline-none font-light tracking-wide"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={isSearching}
-                  data-testid="input-search"
-                />
-                <Button 
-                  onClick={handleSearch}
-                  disabled={isSearching || !searchTerm.trim()}
-                  size="lg"
-                  className="rounded-xl sm:rounded-full px-6 sm:px-10 h-12 sm:h-14 font-medium text-sm sm:text-base transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] bg-white text-black hover:bg-white/90 w-full sm:w-auto"
-                >
-                  {isSearching ? (
-                    <>
-                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
-                      Searching
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-4 h-4 sm:hidden mr-2" />
-                      Search
-                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 hidden sm:inline" />
-                    </>
-                  )}
-                </Button>
-             </div>
-          </div>
+        {/* Search Interface - Setrex Style */}
+        <motion.div 
+          className="w-full max-w-3xl relative group z-30"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+        >
+          {/* Glow Effect */}
+          <div className="absolute -inset-px bg-gradient-to-r from-[#cffe25]/50 via-white/20 to-[#cffe25]/50 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-700" />
           
-          {/* Quick Suggestions */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-6 sm:mt-10 px-4">
-             {["Electric SUV", "Luxury Sedan", "Hybrid", "Vintage", "Sports Car"].map((tag) => (
-               <button
-                 key={tag}
-                 onClick={() => setSearchTerm(tag)}
-                 className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/5 text-xs sm:text-sm text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 transition-all backdrop-blur-sm"
-               >
-                 {tag}
-               </button>
-             ))}
+          {/* Glass Container */}
+          <div className="relative flex flex-col sm:flex-row items-center bg-[#0c0c0f]/90 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-2xl ring-1 ring-white/5 group-hover:ring-[#cffe25]/20 transition-all">
+            <div className="pl-4 sm:pl-6 text-[#757b83] hidden sm:block group-focus-within:text-[#cffe25] transition-colors">
+              <Search className="w-6 h-6" />
+            </div>
+            
+            <input 
+              type="text"
+              placeholder={PLACEHOLDER_PHRASES[placeholderIndex]}
+              className="flex-1 bg-transparent text-white placeholder:text-[#757b83] py-4 px-4 text-lg sm:text-xl outline-none font-light tracking-wide w-full caret-[#cffe25]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={isSearching}
+            />
+            
+            <div className="p-1 w-full sm:w-auto">
+              <Button 
+                onClick={handleSearch}
+                disabled={isSearching || !searchTerm.trim()}
+                size="lg"
+                className="w-full sm:w-auto h-14 px-8 rounded-xl bg-[#cffe25] text-[#010104] hover:bg-[#d8f7d6] font-bold text-base transition-all shadow-[0_0_20px_rgba(207,254,37,0.2)] hover:shadow-[0_0_30px_rgba(207,254,37,0.4)] flex items-center justify-center gap-2"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Search Inventory <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Abstract Bottom Gradient instead of Car */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+        {/* Quick Filters - Moved Here */}
+        <motion.div 
+          className="flex flex-wrap justify-center gap-2 mt-6 relative z-30 max-w-2xl mx-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.4 }}
+        >
+          {["Tesla Model S", "Porsche Taycan", "Lucid Air", "Rivian R1T"].map((tag, i) => (
+            <button
+              key={tag}
+              onClick={() => setSearchTerm(tag)}
+              className="px-3 py-1.5 rounded-lg bg-[#1a1a1d]/80 border border-white/5 text-xs text-[#757b83] hover:text-[#cffe25] hover:border-[#cffe25]/30 hover:bg-[#1a1a1d] transition-all uppercase tracking-wide font-medium backdrop-blur-sm"
+            >
+              {tag}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Floating Platform Stats (Market Data) */}
+        <motion.div 
+          className="hidden md:flex gap-4 mt-16"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+        >
+          <StatCard icon={Database} label="Live Listings" value="50,000+" delay={0.6} />
+          <StatCard icon={Activity} label="Daily Updates" value="24/7" delay={0.7} />
+          <StatCard icon={ShieldCheck} label="Verified Dealers" value="5,000+" delay={0.8} />
+          <StatCard icon={Globe} label="Market Coverage" value="100%" delay={0.9} />
+        </motion.div>
+      </motion.div>
       
-      {/* Scroll indicator */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce hidden md:block opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-        <div className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex items-start justify-center p-2">
-          <div className="w-1 h-2 bg-white rounded-full" />
-        </div>
-      </div>
+      {/* Bottom Gradient Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#010104] via-[#010104]/80 to-transparent pointer-events-none z-10" />
     </section>
   );
 }

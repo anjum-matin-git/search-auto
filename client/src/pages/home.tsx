@@ -192,7 +192,7 @@ export default function Home() {
                   <div className="relative bg-card/80 backdrop-blur-xl rounded-3xl border border-border/50 p-8 sm:p-12 shadow-2xl overflow-hidden">
                     {/* Animated gradient border */}
                     <div className="absolute inset-0 rounded-3xl overflow-hidden">
-                      <motion.div 
+                  <motion.div 
                         className="absolute inset-[-2px] bg-gradient-to-r from-primary via-primary/50 to-primary rounded-3xl"
                         animate={{ rotate: 360 }}
                         transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
@@ -249,36 +249,36 @@ export default function Home() {
                                 />
                                 
                                 {/* Icon container */}
-                                <motion.div 
+                    <motion.div 
                                   className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25"
                                   animate={{ 
                                     rotate: [0, 5, -5, 0],
                                     scale: [1, 1.05, 1]
                                   }}
                                   transition={{ duration: 2, repeat: Infinity }}
-                                >
+                    >
                                   <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-primary-foreground" />
-                                </motion.div>
-                              </div>
-                              
+                  </motion.div>
+                </div>
+                
                               {/* Text content */}
                               <motion.h3 
                                 className="text-xl sm:text-2xl font-display font-bold text-foreground mb-2"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                              >
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
                                 {step.text}
                               </motion.h3>
-                              <motion.p 
+                <motion.p 
                                 className="text-sm sm:text-base text-muted-foreground"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.3 }}
-                              >
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
                                 {step.description}
-                              </motion.p>
-                              
+                </motion.p>
+                
                               {/* Animated dots */}
                               <motion.div 
                                 className="flex gap-1.5 mt-4"
@@ -310,13 +310,13 @@ export default function Home() {
                     
                     {/* Step indicators */}
                     <div className="flex justify-center gap-3 mt-6">
-                      {loadingSteps.map((step, i) => {
-                        const Icon = step.icon;
+                  {loadingSteps.map((step, i) => {
+                    const Icon = step.icon;
                         const isActive = i === currentStep;
                         const isDone = i < currentStep;
                         
-                        return (
-                          <motion.div
+                    return (
+                      <motion.div
                             key={i}
                             className={`relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl transition-all duration-500 ${
                               isActive 
@@ -338,7 +338,7 @@ export default function Home() {
                             
                             {/* Active indicator ring */}
                             {isActive && (
-                              <motion.div 
+                          <motion.div 
                                 className="absolute inset-0 rounded-xl border-2 border-primary"
                                 initial={{ scale: 1, opacity: 1 }}
                                 animate={{ scale: 1.3, opacity: 0 }}
@@ -357,12 +357,12 @@ export default function Home() {
                                 <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                 </svg>
-                              </motion.div>
-                            )}
                           </motion.div>
-                        );
-                      })}
-                    </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
                   </div>
                 </div>
                 

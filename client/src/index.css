@@ -1,15 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════
-   SEARCHAUTO - MOTORFLOW INSPIRED DESIGN
-   Based on temp_design repository
+   SEARCHAUTO - SETREX INSPIRED THEME
+   Palette extracted from Framer template
    ═══════════════════════════════════════════════════════════ */
-
-/* Import fonts - Outfit (Display) and Inter (Body) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 @theme inline {
   --color-background: var(--background);
@@ -44,6 +42,7 @@
   --animate-fade-in: fadeIn 0.6s ease-out forwards;
   --animate-slide-up: slideUp 0.6s ease-out forwards;
   
+  /* Animation Definitions */
   @keyframes accordion-down {
     from { height: 0 }
     to { height: var(--radix-accordion-content-height) }
@@ -60,45 +59,69 @@
     from { opacity: 0; transform: translateY(30px) }
     to { opacity: 1; transform: translateY(0) }
   }
+  @keyframes gradient-x {
+    0%, 100% {
+      background-size: 200% 200%;
+      background-position: left center;
+    }
+    50% {
+      background-size: 200% 200%;
+      background-position: right center;
+    }
+  }
+  
+  @keyframes orbit-slow {
+    from { transform: translateX(-50%) translateY(-3px) rotate(0deg) translateX(80px) rotate(0deg); }
+    to { transform: translateX(-50%) translateY(-3px) rotate(360deg) translateX(80px) rotate(-360deg); }
+  }
+  
+  @keyframes orbit-reverse {
+    from { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+    to { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+  }
+  
+  --animate-gradient-x: gradient-x 15s ease infinite;
+  --animate-orbit-slow: orbit-slow 20s linear infinite;
+  --animate-orbit-reverse: orbit-reverse 25s linear infinite;
 }
 
-/* Base Styles from temp_design */
 @layer base {
   :root {
-    --background: hsl(0 0% 4%);
-    --foreground: hsl(0 0% 98%);
+    /* Setrex Palette: Dark Mode Default */
+    --background: #010104;  /* Deepest Black */
+    --foreground: #ffffff;  /* Pure White */
 
-    --card: hsl(0 0% 6%);
-    --card-foreground: hsl(0 0% 98%);
+    --card: #0c0c0f;        /* Dark Surface */
+    --card-foreground: #ffffff;
 
-    --popover: hsl(0 0% 6%);
-    --popover-foreground: hsl(0 0% 98%);
+    --popover: #0c0c0f;
+    --popover-foreground: #ffffff;
 
-    --primary: hsl(0 0% 98%);
-    --primary-foreground: hsl(0 0% 4%);
+    --primary: #cffe25;     /* Electric Lime */
+    --primary-foreground: #010104; /* Black text on Lime */
 
-    --secondary: hsl(0 0% 12%);
-    --secondary-foreground: hsl(0 0% 98%);
+    --secondary: #1a1a1d;   /* Darker Gray/Glass */
+    --secondary-foreground: #ffffff;
 
-    --muted: hsl(0 0% 12%);
-    --muted-foreground: hsl(0 0% 60%);
+    --muted: #1a1a1d;
+    --muted-foreground: #757b83; /* Muted Grey */
 
-    --accent: hsl(0 0% 15%);
-    --accent-foreground: hsl(0 0% 98%);
+    --accent: #1a1a1d;
+    --accent-foreground: #cffe25;
 
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 98%);
+    --destructive: #fc605c;
+    --destructive-foreground: #ffffff;
 
-    --border: hsl(0 0% 15%);
-    --input: hsl(0 0% 15%);
-    --ring: hsl(0 0% 80%);
+    --border: #ffffff1a;    /* 10% White Border */
+    --input: #ffffff1a;
+    --ring: #cffe25;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --hero-gradient: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 8%) 100%);
+    --hero-gradient: linear-gradient(180deg, #010104 0%, #0c0c0f 100%);
     --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    --glow-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+    --glow-shadow: 0 0 40px rgba(207, 254, 37, 0.15); /* Lime Glow */
   }
 
   * {
@@ -122,11 +145,22 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground;
+    /* White to Grey gradient text */
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50;
+  }
+  
+  .text-gradient-primary {
+    /* Lime gradient text */
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#cffe25] to-[#f3ff9b];
   }
   
   .hover-lift {
     @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+  
+  /* Glass Card Utility */
+  .glass-card {
+    @apply bg-[#0c0c0f]/80 backdrop-blur-xl border border-white/10 shadow-2xl;
   }
   
   /* Safe area inset for notched phones */

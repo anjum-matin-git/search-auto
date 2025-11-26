@@ -94,18 +94,21 @@ class AssistantService:
         """Build Claude prompt with context."""
         context_parts = []
         
-        # Add search context
+        # Add search context with detailed results
         latest_search = self._search_repo.get_latest_with_results(user.id)
         if latest_search:
-            _, car_results = latest_search
+            search_obj, car_results = latest_search
             if car_results:
+                context_parts.append(f"User's last search query: '{search_obj.query}'")
                 summaries = []
-                for car, score in car_results[:3]:
+                for car, score in car_results[:5]:  # Include top 5 for better context
                     data = car.car_data
+                    price = data.get('price', 'N/A')
+                    price_str = f"${price:,}" if isinstance(price, (int, float)) else price
                     summaries.append(
-                        f"{data.get('year')} {data.get('brand')} {data.get('model')} (${data.get('price', 'N/A')})"
+                        f"{data.get('year')} {data.get('brand')} {data.get('model')} - {price_str} - {data.get('location', 'Location N/A')}"
                     )
-                context_parts.append("Recent results: " + "; ".join(summaries))
+                context_parts.append("Current search results:\n" + "\n".join([f"  {i+1}. {s}" for i, s in enumerate(summaries)]))
         
         # Add preferences
         prefs = user.initial_preferences or {}
